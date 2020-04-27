@@ -17,7 +17,7 @@ utilizzare l'assemblatore e conoscere tutte le funzionalità potrebbe richiedere
 un buon modo per iniziare è leggere il capitolo 2, Guida introduttiva, il capitolo 3, Funzionalità dell'assemblatore di base e il capitolo 4,
 Presentazione del linguaggio degli script e integrazione con le funzionalità necessarie. Notare anche il riferimento rapido
 appendice che contiene elenchi di direttive, opzioni e valori.
-Questa è la quinta versione di Kick Assembler. La prima versione (1.x) era un normale assemblatore incrociato 6510 sviluppato
+Questa è la quinta versione di Kick Assembler. La prima versione (1.x) era un normale cross assemblatore 6510 sviluppato
 intorno al 2003 e non fu mai reso pubblico. La seconda versione (2.x) è stata sviluppata nel 2006 e ha combinato il
 assemblatore con un linguaggio di script, che offre l'opportunità di scrivere programmi che generano dati per l'assemblatore
 codice. Finalmente nell'agosto 2006 il progetto è diventato pubblico. La terza versione (3.x) ha migliorato l'assemblaggio sottostante
