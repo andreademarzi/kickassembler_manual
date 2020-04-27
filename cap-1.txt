@@ -1,0 +1,46 @@
+Capitolo 1
+
+
+introduzione
+Benvenuti in Kick Assembler, un assemblatore MOS 65xx avanzato combinato con uno script Java come lo script lan-
+calibro.
+L'assemblatore ha tutte le caratteristiche che ci si aspetterebbe da un assemblatore moderno come macro, illegale e DTV op-
+codici e comandi per lo svolgimento di cicli. Ha anche funzionalità come comandi pseudo, importazione di file SID, importazione
+di formati grafici standard e supporto per plugin Java di terze parti. Il linguaggio di script semplifica la generazione di
+mangiato dati per i tuoi programmi. Potrebbero essere dati come onde sinusoidali, coordinate per un oggetto vettoriale o grafica
+convertitori. Scrivere programmi di generazione di piccoli dati direttamente nel codice sorgente dell'assemblatore è molto più semplice di
+scrivendoli in linguaggi esterni come Java o C ++. Il linguaggio di script e l'assemblatore sono integrati. diversamente da
+altre soluzioni, in cui gli script sono preimpostati, il codice dello script e le direttive assembler lavorano insieme dando
+una soluzione più completa.
+Come si vede dalle dimensioni di questo manuale, Kick Assembler ha molte funzionalità. Non è necessario sapere tutto per
+utilizzare l'assemblatore e conoscere tutte le funzionalità potrebbe richiedere del tempo. Se non conosci Kick Assembler, a
+un buon modo per iniziare è leggere il capitolo 2, Guida introduttiva, il capitolo 3, Funzionalità dell'assemblatore di base e il capitolo 4,
+Presentazione del linguaggio degli script e integrazione con le funzionalità necessarie. Notare anche il riferimento rapido
+appendice che contiene elenchi di direttive, opzioni e valori.
+Questa è la quinta versione di Kick Assembler. La prima versione (1.x) era un normale assemblatore incrociato 6510 sviluppato
+intorno al 2003 e non fu mai reso pubblico. La seconda versione (2.x) è stata sviluppata nel 2006 e ha combinato il
+assemblatore con un linguaggio di script, che offre l'opportunità di scrivere programmi che generano dati per l'assemblatore
+codice. Finalmente nell'agosto 2006 il progetto è diventato pubblico. La terza versione (3.x) ha migliorato l'assemblaggio sottostante
+meccanismo che utilizza un algoritmo di passaggio flessibile, registrazione di effetti collaterali e gestione di valori non validi. Questo ha dato
+prestazioni migliori e reso possibile rendere più avanzate le funzionalità. La quarta versione (4.x) ha sostituito il
+meccanismo di analisi, che è stato realizzato utilizzando un generatore di parser, con uno scritto a mano che è più veloce, di più
+flessibile e incluso un preprocessore. Ciò ha reso possibile la creazione di nuovi costrutti di linguaggio e un errore migliore
+la manipolazione. Ha anche sostituito il sistema di scoping in modo che includa tutte le entità, non solo i simboli. La quinta versione (5.x)
+aggiunti segmenti che danno l'opportunità di gestire l'output delle direttive e di canalizzarlo su file, immagini del disco
+e altri segmenti.
+Nel corso degli anni il progetto è diventato piuttosto grande, con una configurazione professionale che include un proprio repository di codici
+tory, una grande suite di test automatizzata e costruzione e distribuzione automatiche.
+Molte persone hanno contribuito con preziosi commenti e suggerimenti per posta e su CSDB. Grazie ragazzi.
+Il tuo feedback è molto apprezzato. Grazie anche a Gerwin Klein per aver fatto JFlex (l'analizzatore lessicale utilizzato per
+questo assemblatore); Scott Hudson, Frank Flannery e C. Scott Ananian per aver fatto CUP (Il generatore di parser). E
+infine, grazie a XMLMind per aver sponsorizzato il progetto con una versione pro del loro editor XML in cui questo
+il manuale è scritto.
+Mi piacerebbe avere notizie da persone che usano Kick Assembler, quindi non esitate a scrivere i vostri commenti
+kickassembler@no.spam.theweb.dk (<- Rimuovi no.spam. per l'indirizzo reale).
+Ti auguro buona codifica ..
+
+
+
+
+
+
