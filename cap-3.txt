@@ -1,0 +1,562 @@
+
+
+
+capitolo 3
+Funzionalità di base dell'assemblatore
+Questo capitolo descrive la mnemonica e le direttive di base che non sono correlate al linguaggio di script.
+3.1. mnemonics
+In Kick Assembler puoi scrivere assemblatore mnemonico nel modo tradizionale:
+
+
+lda #0
+sta $d020
+sta $d021
+
+Se si desidera scrivere più comandi su una riga, separarli con; come questo:
+
+lda #0; sta $d020; sta $d021
+
+Kick Assembler supporta diversi set di codici operativi. Il set predefinito include lo standard 6502 mnemonics plus
+i codici operativi illegali. Per passare da un set di istruzioni a un altro cpu usa la direttiva .cpu: La seguente volontà
+passare al set di istruzioni 65c02:
+
+.cpu _65c02
+loop:  inc $20
+       bra loop// bra is not present in standard 6502 mnemonics
+
+Available cpus are:
+
+Name Description
+_6502      NoIllegals The standard 6502 instruction set.
+_6502      The standard 6502 instruction + the illegal opcodes.This is the default setting for KickAssembler.
+dtv        The standard  6502 instruction set + the DTV commands.
+_65c02     The 65c02 instruction set.
+
+A complete listing of the CPU instructions and their opcodes can be found in the Quick Reference Appendix.
+
+3.2. Tipi di argomenti
+Kick Assembler utilizza la notazione tradizionale per indirizzare le modalità / i tipi di argomento:
+Tabella 3.2 Tipi di argomenti
+
+Table 3.2. Argument Types
+Mode                                 Example
+No argument                          nop
+Immediate                            lda #$30
+Zeropage                             lda $30
+Zeropage,x                           lda $30,x
+Zeropage,y ldx $30,y
+Indirect zeropage,x                  lda ($30,x)
+Indirect zeropage,y                  lda ($30),y
+Abolute lda $1000   
+Absolute,x                           lda $1000,x
+Absolute,y                           lda $1000,y
+Indirect                             jmp ($1000)
+Relative to program counter          bne loop
+Indirect zeropage (65c02 only)       adc ($12)
+Zeropage, Relative (65c02 only)      bbr1 $12,label
+indirect,x (65c02 only)              jmp ($1234,x)
+
+Un argomento viene convertito nella sua modalità zeropage, se possibile. Ciò significa che lda $ 0030 genererà un lda
+comando nella sua modalità zeropage 1 (Se l'argomento è sconosciuto (ad es. Un'etichetta non risolta) nel primo passaggio, l'assemblatore assumerà che abbia un valore di 16 bit)
+È possibile forzare l'assemblatore a utilizzare la forma assoluta del mnemonico aggiungendo .a o .abs. Allo stesso modo
+puoi dire all'assemblatore di usare la modalità zeropage quando altrimenti userebbe una modalità assoluta.
+
+lda.abs $0040,x         //Uses absolute mode
+lda.a $0030,x           //Same as abs (abbreviation)
+stx.zp zpLabel,y        //Uses zeropage mode
+stx.z zpLabel,y         //Same as as zp (abbreviation)
+.label zpLabel = $10
+jmp.z $1000             // Modifies nothing, jmp don't have any zp mode
+
+Con le seguenti estensioni è possibile forzare modalità specifiche. Sono deprecati e conservati solo a ritroso
+Compatibilità:
+
+Ext             Mode                                 Example
+
+im, imm           Immediate 
+z, zp             Zeropage                         ldx.z $1234
+zx, zpx          Zeropage,x                        lda.zpx table
+zy, zpy          Zeropage,y 
+izx, izpx        Indirect zeropage,x 
+izy, izpy        Indirect zeropage,y 
+ax, absx         Absolute,x                        lda.absx $1234
+ay, absy         Absolute,y I, ind Indirect        jmp.i $1000
+r, rel           Relative to program counter
+
+
+
+3.3. Formati numerici
+Kick Assembler supporta i formati numerici standard:
+
+Table 3.4. Number formats
+Prefix          Format          Example
+                Decimal         lda #42
+$               Hexadecimal     lda #$2a, lda #$ff
+%               Binary          lda #%101010
+
+
+3.4. Etichette, etichette per argomenti e etichette multiple
+Le dichiarazioni delle etichette in Kick Assembler terminano con ":" e non hanno postfix quando menzionate, come mostrato nella
+seguente programma:
+
+loop:
+inc $d020
+inc $d021
+jmp loop
+
+Puoi mettere le etichette davanti agli argomenti mnemonici. Questo può essere utile durante la creazione di codice auto-modificante:
+
+
+stx tmpX
+...
+ldx tmpX:#$00
+
+Kick Assembler supporta anche più etichette, che possono essere dichiarate più di una volta. Questi sono
+utile per prevenire conflitti di nomi tra le etichette. Una multietichetta inizia con un "!" E quando il tuo riferimento lo hai
+per finire con un "+" per fare riferimento alla successiva multi etichetta o "-" per fare riferimento alla precedente multi etichetta:
+
+
+!loop:      ldx #100
+            inc $d020
+            dex
+            bne !loop- // Jumps to the previous instance of !loop
+            ldx #100
+!loop:      inc $d021
+            dex
+            bne !loop- // Jumps to the previous instance of !loop
+
+o
+
+            ldx #10
+!loop:
+            jmp !+ // Jumps over the two next nops to the ! label
+            nop
+            nop
+!:          jmp !+ // Jumps over the two next nops to the ! label
+            nop
+            nop
+!:
+            dex
+            bne !loop- // Jumps to the previous !loop label
+
+L'applicazione di più di un '+' o '-' salterà le etichette. Per esempio. '+++' passerà alla terza etichetta:
+
+
+            jmp !+++ // Jumps to the third '!' label
+!:          nop
+!:          nop
+!:                      // <- here!
+
+
+
+
+
+Un altro modo per evitare variabili in conflitto è utilizzare gli ambiti definiti dall'utente, che sono spiegati nell'ambito
+sezione del capitolo 4, Introduzione al linguaggio di script.
+
+Un "*" restituisce il valore della posizione di memoria corrente, quindi invece di utilizzare le etichette puoi scrivere i tuoi salti
+come questo:
+
+// Jumps with '*'
+             jmp *
+             inc $d020
+             inc $d021
+             jmp *-6
+// The same jumps with labels
+this:       jmp this
+
+!loop:      inc $d020
+
+            inc $d021
+            jmp !loop-
+
+Quando fa riferimento a un'etichetta che non è stata ancora risolta, l'assemblatore assumerà un indirizzo a due byte, anche se
+in seguito si trova nello zeropage. Puoi contrassegnare le etichette come in zeropage con la direttiva .zp:
+
+         // Uses zeropage form of lda and sta eventhough the labels is first
+         // resolved later
+        lda zpReg1
+        sta zpReg2
+*=$10 virtual
+.zp {
+zpReg1: .byte 0
+zpReg2: .byte 0
+}
+
+Nota: attualmente la direttiva .zp non gestisce macro e pseudocomandi chiamati all'interno di {}. etichette
+all'interno questi saranno nella forma definita nella macro.
+
+
+
+
+3.5. Direttive di memoria
+
+La direttiva * viene utilizzata per impostare il contatore del programma. Un programma dovrebbe sempre iniziare con una direttiva * per dire a
+assemblatore dove mettere l'output. Ecco alcuni esempi di utilizzo:
+
+
+
+             *=$1000 "Program"
+             ldx #10
+             dex
+!loop:       bne !loop-
+             rts
+
+             *=$4000 "Data"
+             .byte 1,0,2,0,3,0,4,0
+
+             *=$5000 "More data"
+             .text "Hello"
+
+Nota: la vecchia notazione ('.pc = $ 1000') di Kick Assembler 2.xe 3.x è ancora supportata.
+L'ultimo argomento è facoltativo e viene utilizzato per denominare il blocco di memoria creato dalla direttiva. Quando si utilizza il
+Opzione "-showmem" durante l'esecuzione dell'assemblatore verrà generata una mappa di memoria che visualizza l'utilizzo della memoria
+e bloccare i nomi. La mappa del programma sopra appare così:
+
+Memory Map
+----------
+$1000-$1005 Program
+$4000-$4007 Data
+$5000-$5004 More data
+
+Utilizzando l'opzione virtuale sulla direttiva .pc è possibile dichiarare un blocco di memoria che non viene salvato nel risultante
+file.
+
+        *=$0400 "Data Tables 1" virtual
+table1: .fill $100,0
+table2: .fill $100,0
+        *=$0400 "Data Tables 2" virtual
+table3: .fill $150,0
+table4: .fill $100,0
+        *=$1000 "Program"
+        ldx #0
+        lda table1,x
+...
+
+Si noti che i blocchi di memoria virtuale possono sovrapporsi ad altri blocchi di memoria. Sono contrassegnati da un asterisco nel
+mappa di memoria.
+
+Memory Map
+----------
+*$0400-$05ff Data Tables 1
+*$0400-$064f Data Tables 2
+$1000-$1005 Program
+
+Dato che i blocchi di memoria virtuale non vengono salvati, l'esempio precedente salverà la memoria solo da $ 1000 a $ 1005.
+Con la direttiva .align, è possibile allineare il contatore del programma a un determinato intervallo. Questo è utile per l'ottimizzazione
+il tuo codice attraversando un confine della pagina di memoria comporta una penalità di un ciclo per i comandi di riferimento della memoria.
+Per evitare ciò, utilizzare il comando .align per allineare le tabelle:
+
+
+
+            *=$1000 "Program"
+            ldx #1
+            lda data,x
+            rts
+            *=$10ff     //Bad place for the data
+            .align $100 //Alignment to the nearest page boundary saves a cycle
+data:       .byte 1,2,3,4,5,6,7,8
+
+Nel caso in cui desideri che il tuo codice venga posizionato nella posizione $ 1000 in memoria ma desideri che sia assemblato come se fosse posizionato
+a $ 2000, è possibile utilizzare la direttiva .pseudopc:
+
+
+        *=$1000 "Program to be relocated at $2000"
+.pseudopc $2000 {
+loop:    inc $d020
+         jmp loop // Will produce jmp $2000 instead of jmp $1000
+}
+
+3.6. Direttive sui dati
+Le direttive .byte, .word, .dword e .text sono usate per generare byte, word (una parola = due byte), dword
+(doppia parola = 4 byte) e dati di testo come negli assemblatori standard 65xx.
+
+.byte 1,2,3,4       // Generates the bytes 1,2,3,4
+.word $2000,$1234   // Generates the bytes $00,$20,$34,$12
+.dword $12341234    // Generates the bytes $34,$12,$34,$12
+.text "Hello World"
+
+Puoi usare .by, .wo e .dw come alias per .byte, .word e .dword, quindi '.by $ 10' equivale a '.byte $ 10'.
+Con la direttiva .fill puoi riempire una sezione della memoria con byte. Funziona come un ciclo e automaticamente
+imposta la variabile i sul numero di iterazione.
+
+// Nomal filling
+.fill 5, 0 // Generates byte 0,0,0,0,0
+.fill 5, i // Generates byte 0,1,2,3,4
+.fill 256, 127.5 + 127.5*sin(toRadians(i*360/256)) // Generates a sine curve
+
+// Use [,,] to fill with a repeat pattern
+.fill 4, [$10,$20] //Generates .byte $10,$20,$10,$20,$10,$20,$10,$20
+.fill 3, ['D','E','M','O','!'] //Generates the same bytes as .text "DEMO!DEMO!
+DEMO!"
+.fill 3, [i,i*$10] //Generates .byte 0,0,1,$10,2,$20
+
+//.fillword is like .fill but with .word directives
+.fillword 5,i*$80// Generates .word $0000,$0080,$0100,$0180,$0200
+.fillword 2,[$100,0]// Generates .word $0100,$0000,$0100,$0000
+
+Nella maggior parte dei casi è preferibile avere due elenchi, uno con byte basso e uno con byte alto, piuttosto che un elenco di parole.
+Per generare questo è possibile utilizzare la direttiva .lohifill. Genera i due elenchi uno dopo l'altro e consente il tuo
+accedervi utilizzando un campo hi / lo su un'etichetta connessa in questo modo:
+
+
+    ldx#20    // ychar coord
+    ldy #15    // xchar coord
+    clc
+    lda mul40.lo,x  // Access lo byte table
+    sta $fe
+    lda mul40.hi,x  // Access hi byte table
+    ora #$04
+    sta $ff
+    lda #'x'
+    sta ($fe),y    // Draws 'x' at screenpos x,y
+    rts
+mul40: .lohifill $100, 40*i // Generates lo/hi table:
+
+                            // .byte <0, <40, <80, <120, ....
+                            // .byte >0, >40, >80, >120, ....
+
+
+La generazione di byte mediante la direttiva fill verrà compilata più rapidamente rispetto alla generazione di byte utilizzando la directory .for e .byte
+tivi. (La direttiva .for verrà spiegata in seguito.)
+3.7. Codifica
+La direttiva .text genera byte nella memoria che rappresenta il dato texttring. La codifica predefinita è
+"screencode_mixed", che si associa alle rappresentazioni screencode del set di caratteri sia in maiuscolo che in minuscolo
+lettere maiuscole. Per modificare la codifica, utilizzare la direttiva .encoding:
+
+
+// How to use encoding
+.encoding "screencode_upper"
+.text "THIS IS WRITTEN IN THE UPPERCASE SINCE LOWERCASE CHARS ARE USE FOR GFX
+SIGNS"
+.encoding "screencode_mixed"
+.text "In this ENCODING we have both UPPER and lower case chars."
+.text "Remember to swith to a charset that fits the encoding."
+
+La codifica influisce su ogni operazione che converte i caratteri nel codice sorgente in valori byte, ad esempio il
+Anche la direttiva ".import text" è interessata.
+
+Le codifiche supportate sono:
+
+Tabella 3.5 codifiche
+
+
+Name                                    Description
+petscii_mixed                            The petscii representation of the charset with both upper
+                                         and lower case characters.
+
+petscii_upper                            The petscii representation of the charset with upper case
+                                         and graphics characters.
+
+screencode_mixed                         The screencode representation of petscii_mixed
+
+screencode_upper                         The screencode representation of petscii_upper
+
+
+3.8. Importazione del codice sorgente
+
+Utilizzare il preprocessore per importare altri file di origine.
+
+
+// Import the file "mylibrary.asm"
+#import "MyLibrary.asm"
+// Only import "UpstartCode.asm" if STAND_ALONE is defined
+#importif STAND_ALONE "UpstartCode.asm"
+
+Si noti che i comandi del preprocessore iniziano con #. Fare riferimento al capitolo sul preprocessore per una descrizione dettagliata-
+zione.
+Quando Kick Assembler cerca un file, per prima cosa cerca nella directory corrente. Successivamente appare nella directory
+torie fornite dal parametro "-libdir" durante l'esecuzione dell'assemblatore. Ciò consente di creare librerie standard
+per i file che usi in diverse fonti. Una riga di comando potrebbe apparire così:
+
+java –jar kickass.jar myProgram.asm –libdir ..\music –libdir c:\code\stdlib
+
+Se crei librerie di codice sorgente potresti voler assicurarti che la libreria sia inclusa una sola volta nel tuo codice.
+Questo può essere fatto inserendo una direttiva #importonce nella parte superiore del file della libreria:
+
+File1.asm:
+#importonce
+.print "This will only be printed once!"
+
+File2.asm:
+#import "File1.asm" // This will import File1
+#import "File1.asm" // This will not import anything
+
+NOTA! Le direttive v3.x per l'importazione di file di origine mediante la direttiva import (sorgente .import "myfile.asm"
+e .importonce), non il preprocessore, è ancora supportato. Ma si consiglia di utilizzare le direttive del preprocessore,
+poiché forniranno un ordine di valutazione più naturale. L'uso del preprocessore importerà subito la fonte
+l'utilizzo della vecchia direttiva di importazione analizzerà prima l'intero file, quindi importerà file esterni durante la valutazione.
+
+
+3.9. Importazione di dati
+Con la direttiva .import puoi importare dati da file esterni nel tuo codice. Puoi importare binario, C64,
+e file di testo:
+
+
+// import the bytes from the file 'music.bin'
+.import binary "Music.bin"
+
+// Import the bytes from the c64 file 'charset.c64'
+// (Same as binary but skips the first two address bytes)
+.import c64 "charset.c64"
+// Import the chars from the text file
+// (Converts the bytes as a .text directive would do)
+.import text "scroll.txt"
+
+L'importazione binaria, c64 e di testo richiede un offset e una lunghezza come parametri opzionali:
+
+// import the bytes from the file 'music.bin', but skip the first 100 bytes
+.import binary "Music.bin", 100
+
+// Imports $200 bytes starting from position $402 (the two extra bytes is because
+its a c64 file)
+.import c64 "charset.c64", $400, $200
+
+Come quando si importano file di origine, la direttiva import cerca anche le cartelle fornite dall'opzione –libdir quando
+alla ricerca di un file.
+
+
+
+
+
+3.10. Commenti
+
+
+I commenti sono parti del programma che vengono ignorate dall'assemblatore. Kick Assembler supporta la linea e il blocco
+commenti noti da linguaggi come C ++ e Java. Quando l'assemblatore vede "//" ignora il resto
+linea. I commenti sul blocco C ignorano tutto tra / * e * /.
+
+/ * ------------------------------------------------ ----------
+Questo piccolo programma è realizzato per dimostrare commenti
+-------------------------------------------------- ---------- * /
+    lda # 10
+    sta $ d020 // Anche questo è un commento
+    sta / * I commenti possono essere inseriti ovunque * / $ d021
+    rts
+
+Traditional 65xx assembler line comments (;) are not supported since the semicolon is used in for-loops in the
+script language.
+
+
+
+
+3.11. Console Output
+
+With the .print directive you can output text to the user while assembling. For example:
+
+.print "Hello world"
+.var x=2
+.print "x="+x
+
+Ciò fornirà il seguente output dall'assemblatore:
+
+parsing
+flex pass 1
+Output pass
+    Hello world
+    x=2.0
+
+Si noti che l'output viene fornito durante il passaggio di output. Puoi anche stampare l'output immediatamente con .print-
+ora comando. Ciò è utile per lo script di debug in cui errori impediscono l'esecuzione del passaggio di output. Il .print-
+il comando ora stampa l'output in ogni passaggio e in alcuni passaggi l'output potrebbe essere incompleto a causa della mancanza
+di informazione. Nel seguente esempio stampiamo un'etichetta che non è stata risolta nel primo passaggio:
+
+.printnow "loop=$" + toHexString(loop)
+        *=$1000
+loop:   jmp loop
+
+
+Questo darà il seguente output:
+
+parsing
+flex pass 1
+             loop=$<<Invalid String>>
+flex pass 2
+             loop=$1000
+Output pass
+
+Se si rileva un errore durante il montaggio, è possibile utilizzare la direttiva .error per terminare il montaggio e la visualizzazione
+un messaggio di errore:
+
+
+.var width = 45
+.if (width>40) .error "width can’t be higher than 40"
+
+Un altro modo di scrivere questo è usare la direttiva .errorif che accetta un'espressione booleana e un testo di messaggio.
+Viene generato un errore se l'espressione booleana viene valutata su true:
+
+.var width = 45
+.errorif with>40, "width can’t be higher than 40"
+
+
+Questo è più flessibile poiché lo standard .if deve essere deciso nel primo passaggio che darà un (indesiderato)
+errore se, ad esempio, si confrontano le etichette non ancora risolte. Ad esempio, se si desidera verificare un limite di pagina
+
+        beq label1
+        .errorif (>*) != (>label1), "Page crossed!"
+        nop
+        nop
+label1:
+
+
+
+
+
+
+3.12. Punti di interruzione e orologi
+
+Punti di interruzione e orologi non cambiano nulla nel codice. Aggiungono informazioni di debug agli emulatori / debugger.
+Attualmente questo significa aggiungere informazioni al file del simbolo vice o al file DebugDump (C64Debugger).
+È possibile impostare i punti di interruzione nel codice con la direttiva .break:
+
+
+    // Example 1
+         ldy #10
+loop:
+         .break   // This will put a breakpoint on 'inc $d020'
+          inc $d020
+          dey
+          .break "if y<5" // This will add a string as argument for the breakpoint
+          bne loop
+// Example 2
+            lda #10
+            .break     // Will place a breakpoint at the first nop in the macro
+            MyMacro()
+.macro MyMacro() {
+         nop
+         nop
+         nop
+}
+
+
+La direttiva .break inserisce un punto di interruzione nella posizione di memoria corrente. Come visto nel secondo punto di interruzione, tu
+può aggiungere un argomento a un punto di interruzione. La sintassi di questo dipende dal consumatore. Il caso precedente (.break "if
+y <5 ") è scritto per le espressioni condizionali di VICE. VICE quindi si interromperà se il registro y è inferiore a 5.
+
+
+
+
+Gli "watch" sono definiti in questo modo
+
+
+
+
+.watch $d018                        // Watches $d018
+.watch xpos+1                       // Watches the address xpos+1
+.watch $d000,$d00f                  // Watches the range $d000-$d00f
+.watch xpos,xpos+10,"store"         // Watches a range with the additional parameter
+"store"
+.watch count,,"hex8"                // you can leave the second argument empty
+
+
+
+Il primo argomento è l'indirizzo. Se viene dato il secondo argomento è l'intervallo tra i due. Il terzo argomento è
+una stringa di testo opzionale con informazioni aggiuntive. Consultare il manuale dell'emulatore / debugger per i possibili contenuti
+del terzo argomento.
+
+
+
+
+
+
+
