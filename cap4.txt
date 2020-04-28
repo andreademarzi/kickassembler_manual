@@ -1,0 +1,539 @@
+capitolo 4
+Presentazione del linguaggio di script
+In questo capitolo vengono introdotte le basi del linguaggio di script. Ci concentreremo su come valuta Kick Assembler
+espressioni, valori standard e librerie. I capitoli successivi tratteranno aree più avanzate.
+4.1. espressioni
+L'assemblatore di kick ha un meccanismo incorporato per la valutazione delle espressioni. Un esempio di un'espressione è 25 + 2 * 3 /
+X. Le espressioni possono essere utilizzate in molti contesti diversi, ad esempio per calcolare il valore di una variabile o per definire
+un byte:
+
+lda #25+2*3/x
+.byte 25+2*3/x
+
+Gli assemblatori standard possono calcolare solo espressioni basate sui numeri, mentre Kick Assembler può valutare
+espressioni basate su molti tipi diversi come: numeri, valori booleani, stringhe, elenchi, vettori e matrici. Quindi se
+vuoi calcolare un argomento basato sul secondo valore in un elenco che scrivi:
+
+lda #35+myList.get(1) // 1 because first element is number 0
+
+O forse vuoi generare il tuo argomento in base alla coordinata x di un vettore:
+
+lda #35+myVector.getX()
+
+O forse sulla base della coordinata x sul terzo vettore in un elenco:
+
+lda #35+myVectorList.get(2).getX()
+
+Penso che tu abbia avuto l'idea ormai. Il meccanismo di valutazione di Kick Assembler è molto simile a quello dei moderni pro
+lingue che grugniscono. Ha un tipo di approccio orientato agli oggetti, quindi viene eseguita la chiamata di una funzione su un valore (/ oggetto)
+una funzione appositamente collegata al valore. Operatori come +, -, *, /, ==,! =, Ecc., Sono visti come funzioni e lo sono anche
+appositamente definito per ogni tipo di valore.
+Nei capitoli seguenti, una descrizione dettagliata di come usare i tipi di valore e le funzioni in Kick Assembler
+sarà presentato.
+
+4.2. Variabili, costanti ed etichette definite dall'utente
+Con le variabili è possibile archiviare i dati per un uso successivo. Prima di poter utilizzare una variabile è necessario dichiararla. Tu fai
+questo con la direttiva .var:
+
+.var x=25
+lda #x
+// Gives lda #25
+
+Se vuoi cambiare x in seguito scrivi:
+
+Ciò aumenterà di x di 10. La direttiva .eval viene utilizzata per fare in modo che Kick Assembler valuti le espressioni. Infatti,
+la direttiva .var sopra è solo una comoda scorciatoia di ".eval var x = 25", dove "var" è una sottoespressione che
+dichiara una variabile (questo tornerà utile in seguito quando vogliamo definire le variabili in for-loop).
+Esistono altre scorciatoie. Gli operatori ++, -, + =, - =, * = e / = chiameranno automaticamente una variabile referenziata
+con + 1, -1, + y, -y, * ye / y. Per esempio:
+
+
+.var x = 0
+.eval x++//Givesx=x+1
+.eval x--//Givesx=x-1
+.eval x+=3//Givesx=x+3
+.eval x-=7//Givesx=x-7
+.eval x*=3//Givesx=x*3
+.eval x/=2//Givesx=x/2
+
+
+Gli utenti esperti dei moderni linguaggi di programmazione sapranno che le assegnazioni restituiscono un valore, ad es. x = y =
+z = 25 prima assegna 25 a z, che restituisce 25 assegnato a y, che restituisce 25 assegnato a x. Calcio
+L'assemblatore supporta anche questo. Si noti che ++ e - funzionano come operatori ++ e –- postfix reali, il che significa
+che restituiscono il valore originale e non il nuovo (Es: .eval x = 0 .eval y = x ++, imposteranno x su 1 e y su 0)
+Puoi anche dichiarare costanti:
+
+
+.const c=1
+// Declares the constant c to be 1
+.const name = "Camelot" // Constants can assume any value, for example string
+
+Non è possibile assegnare un nuovo valore a una costante, quindi .eval pi = 22 genererà un errore. Si noti che non tutti i valori lo sono
+immutabile. Se si definisce una costante che punta a un elenco, il contenuto dell'elenco può comunque cambiare. Se vuoi fare
+un valore mutabile immutabile, puoi usare la sua funzione lock (), che bloccherà il suo contenuto:
+
+.const immutableList = List().add(1,2,3).lock()
+
+Dopo questo riceverai un errore se provi ad aggiungere un elemento o modificare elementi esistenti.
+Con l'istruzione .enum è possibile definire enumerazioni, che sono serie di costanti:
+
+.enum {singleColor, multiColor}// Defines singleColor=0, multiColor=1
+.enum {effect1=1,effect2=2,end=$ff} // Assigns values explicitly
+.enum {up,down,left,right, none=$ff} // You can mix implicit and explicit
+                                        // assignment of values
+
+
+Le variabili e le costanti possono essere visualizzate solo dopo che sono state dichiarate mentre le etichette possono essere visualizzate nell'intero ambito.
+Puoi definire un'etichetta con la direttiva .label come definisci variabili e costanti:
+
+
+// This fails
+inc myLabel1
+.const myLabel1 = $d020
+// This is ok
+inc myLabel2
+.label myLabel2 = $d020
+
+4.3. scoping
+È possibile limitare l'ambito delle variabili e delle etichette definendo un ambito definito dall'utente. Questo viene fatto da {..}.
+Tutto tra le parentesi è definito in un ambito locale e non può essere visto dall'esterno.
+
+Function1: {
+        .var length = 10
+        ldx #0
+        lda #0
+loop:
+        sta table1,x
+        inx
+        cpx #length
+        bne loop
+}
+Function2: {
+        .var length = 20 // doesn’t collide with the previous ‘length’
+        ldx #0
+        lda #0
+loop:   sta table2,x// the label doesn’t collide with the previous ‘loop’
+        inx
+        cpx #length
+        bne loop
+}
+
+Gli ambiti possono essere nidificati tutte le volte che si desidera, come dimostrato dal seguente programma:
+
+
+.var x = 10
+{
+        .var x=20
+        {
+            .print "X in 2nd level scope read from 3rd level scope is " + x
+            .var x=30
+            .print "X in 3rd level scope is " + x
+        }
+        .print "X in 2nd level scope is " + x
+}
+.print "X in first level scope is " + x
+
+L'output di questo è:
+
+X in 2nd level scope read from 3rd level scope is 20.0
+X in 3rd level scope is 30.0
+X in 2nd level scope is 20.0
+X in first level scope is 10.0
+
+4.4. Valori numerici
+I valori numerici sono numeri che coprono sia numeri interi che float. Operatori numerici standard (+, -, * e /) lavorano
+come nei linguaggi di programmazione standard. Puoi combinarli tra loro e obbediranno allo standard
+regole di precedenza. Ecco alcuni esempi:
+
+25+3
+5+2.5*3-10/2
+charmem + y * $100
+
+In practical use they can look like this:
+
+.var charmem = $0400
+            ldx #0
+            lda #0
+loop:       sta charmem + *$100,x
+            sta charmem + 1*$100,x
+            sta charmem + 2*$100,x
+            sta charmem + 3*$100,x
+            inx
+            bne loop
+
+È inoltre possibile utilizzare operatori bit a bit per eseguire e, o, operazioni esclusive o e di spostamento dei bit.
+
+.var x=$12345678
+.word x & $00ff, [x>>16] & $00ff // gives .word $0078, $0034
+
+Speciale per gli assemblatori 65xx sono gli operatori di byte alto e basso (>, <) che vengono generalmente utilizzati in questo modo:
+
+
+
+lda #<interrupt1 // Takes the lowbyte of the interupt1 value
+sta $0314
+lda #>interrupt1 // Takes the high byte of the interupt1 value
+sta $0315
+
+Table 4.1. Numeric Values
+
+
+Name              Operator     Examples             Description
+
+Unary minus        -                                 Inverts the sign of a number.
+
+Plus               +           10+2 = 12             Adds two numbers.
+
+Minus              -           10-8=2                Subtracts two numbers.
+
+Multiply           *           2*3 =6                Multiply two numbers.
+
+Divide             /           10/2 = 5              Divides two numbers.
+
+High byte          >           >$1020 = $10          Returns the second byte of a number.
+
+Low byte           <           <$1020 = $20          Returns the first byte of a number.
+ 
+Bitshift left      <<          2<<2 = 8              Shifts the bits by a given number of spaces to the left.
+
+Bitshift right     >>          2>>1=1                Shifts the bits by a given number of spaces to the right.
+
+Bitwise and        &           $3f & $0f = $f        Performs bitwise and between two numbers.
+
+Bitwise or         |           $0f | $30 = $3f       Performs a bitwise or be-tween two numbers
+
+Bitwise eor        ^           $ff ^ $f0 = $0f       Performs a bitwise exclusive or between two numbers.
+
+Bitwise not        ~           ~%11 = %...11111100   Performs bitwise negation
+of the bits.
+
+È possibile ottenere la rappresentazione numerica di un valore arbitrario utilizzando la funzione generale .number (). Per esempio.
+
+.print ‘x’.number()
+
+4.5. parentesi
+È possibile utilizzare sia le parentesi morbide () che le parentesi graffe [] per indicare l'ordine di valutazione.
+
+lda #2+5*2// gives lda #12
+lda #(2+5)*2// gives lda #14
+lda #[2+5]*2// gives lda #14
+
+Si noti che gli assemblatori 65xx utilizzano una parentesi morbida per segnalare una modalità di indirizzamento indiretto:
+
+jmp ($1000)// Creates a jmp indirect command
+jmp [$1000]// Creates a jmp absolute command
+
+Puoi annidare tutte le parentesi che vuoi, quindi (([((2 + 4))]) * 3) +25.5 è un'espressione legale.
+
+
+
+
+4.6. Valori di stringa
+Le stringhe vengono utilizzate per contenere testo. È possibile definire stringhe semplici o stringhe di codice di escape come questa:
+
+
+// Plain strings
+    .var message = "Hello World"    // Gives .text "Hello world"
+    .text message
+    .const file="c:\newstuff"
+
+// String with escape codes ('\esc') start with @
+    .print @"First line.\nSecond line."// Using newline
+    .print @“He said: \"Hello World\""// Using " inside the string
+
+    .text @"This text will loop now\$ff"// placing hex values ($ff) in the text
+
+
+
+@ davanti a una stringa significa che puoi usare caratteri di escape. Notare come '\ n' in "c: \ newstuff" non sia una newline
+mentre '\ n' in @ "Prima riga. \ nSeconda riga". è. (Nota: questo è l'opposto di C # ed è questo modo per evitare di rompersi
+riferimenti a file in vecchie fonti).
+
+I codici di escape supportati sono:
+
+
+
+
+Tabella 4.2 Codici di escape
+
+
+ 
+Code     Example                        Description
+
+\b       @"\b"                               Backspace
+ 
+\f       @"\f"                               Form feed
+
+\n       @"Line1\nLine2"                     Newline
+
+\r      @"\r"                                Carriage return
+
+\t     .print @"Hello\tWorld"                Tab
+
+\\      @"c:\\tmp\\myfile.txt”               Backslash
+
+\"      @"It's called \"Bodiam Castle\""     Double quotes
+
+\$      @"Hello world\$ff"                  Two digit hex values
+
+
+Ogni oggetto ha una rappresentazione in forma di stringa e puoi concatenare le stringhe con l'operatore +. Per esempio:
+
+.var x=25
+.var myString= “X is “ + x  // Gives myString = "X is 25"
+
+È possibile utilizzare la direttiva .print per stampare una stringa sulla console durante l'assemblaggio. Ciò è utile durante il debug.
+La stampa di xey può essere eseguita in questo modo:
+
+.print "x="+x
+.print "y="+y
+
+Puoi anche stampare le etichette per vedere a quale posizione si riferiscono. Se lo fai, è meglio convertire il valore dell'etichetta
+alla notazione esadecimale prima:
+
+
+        .print “int1=$”+toHexString(int1)
+int1:
+        sta regA+1
+        stx regX+1
+        sty regY+1
+        lsr $d019
+        // Etc.
+
+
+Here is a list of functions/operators defined on strings:
+
+
+Table 4.3. String Values
+
+
+Function/Operator              Description
+
++ Appends                     two strings.
+
+asBoolean()                   Converts the string to a boolean value (eg, “true”.asBoolean()).
+
+asNumber()                    Converts the string to a number value. Ex, “35”.asNumber().
+
+asNumber(radix)               Converts the string to a number value with thegiven radix 
+
+                                       (16=hexadecimal, 2=binary etc.). Ex,“f”.asNumber(16) will return 15.
+
+charAt(n)                     Returns the character at position n.
+
+size()                        Returns the number of characters in the string.
+
+substring(i1,i2)              Returns the substring beginning at i1 and ending at i2 (char at i2 not included).
+
+toLowerCase()                 Return the lower version of the string
+.
+toUpperCase()                 Return the uppercase version of the string.
+
+
+Ecco le funzioni che accettano un valore numerico e lo convertono in una stringa:
+
+
+Tabella 4.4 Numeri di stringhe
+
+Function                        Description
+toIntString(x)                   Return x as an integer string (eg x=16.0 will return “16”).
+
+toIntString(x,minSize)           Return x as an integer string space-padded to reach the
+                                    given minsize. (eg toIntString(16,5) will return “ 16”).
+
+toBinaryString(x)                Return x as a binary string (eg x=16.0 will return
+                                    “10000”).
+
+toBinaryString(x,minSize)        Return x as a binary string zero-padded to reach the
+                                    given minSize (eg toBinaryString(16,8) will return “00010000”).
+
+toOctalString(x)                 Return x as an octal string (eg x=16.0 will return “20”).
+
+toOctalString(x,minSize)         Return x as an octal string zero-padded to reach the 
+                                    given minSize (eg toBinaryString(16,4) will return “0020”).
+
+
+toHexString(x)                   Return x as a hexadecimal string (eg x=16.0 will return “10”).
+
+toHexString(x,minSize)           Return x as an hexadecimal string zero-padded to reach the given minSize 
+                                    (eg toBinaryString(16,4) will return “0010”).
+
+È possibile ottenere la rappresentazione in forma di stringa di un valore arbitrario utilizzando la funzione generale .string (). Per esempio.
+
+
+.print 1234.string().charAt(2)  // Prints 3
+
+
+4.7. Valori Char
+I valori char o i caratteri vengono utilizzati in questo modo:
+
+lda #'H'
+sta $0400
+lda #'i'
+sta $0401
+lda #"?!#".charAt(1)
+sta $0402
+.byte 'H','e','l','l','o',' '
+.text "World"+'!'
+
+Nell'esempio sopra, i caratteri sono usati in due modi. Nei primi esempi viene utilizzata la loro rappresentazione numerica
+come argomenti per i comandi lda e nell'esempio finale, la rappresentazione di stringa '!' viene aggiunta al "Mondo"
+corda.
+Char value è una sottoclasse di valori numerici, il che significa che ha tutte le funzioni posizionate su
+valori numerici, in modo da poter fare cose come.
+
+
+lda #’H’+1 // Same as lda #’I’
+sta $0400
+lda# ’A’+1 // Same as lda #’B’
+sta $0401
+lda #’L’+1 // Same as lda #’M’
+sta $0402
+
+
+
+4.8. The Math Library
+La libreria matematica di Kick Assembler è costruita sulla libreria matematica Java. Ciò significa che quasi ogni costante e
+Il comando nella libreria matematica di Java è disponibile in Kick Assembler. Ecco un elenco di costanti e comandi disponibili.
+Per ulteriori spiegazioni consultare la documentazione Java sulla homepage di Suns. L'unica funzione di libreria matematica non Java
+è mod (modulo).
+
+
+Tabella 4.5 Costanti matematiche
+
+Constant                         Value
+
+PI                              3.141592653589793
+
+E                               2.718281828459045
+
+
+Table 4.6. Math Functions
+
+Function                    Description
+
+abs(x)                      Returns the absolute (positive) value of x.
+
+acos(x)                     Returns the arc cosine of x.
+
+asin(x)                     Returns the arc sine of x.
+
+atan(x)                     Returns the arc tangent x
+
+atan2(y,x)                  Returns the angle of the coordinate (x,y) relative to the
+                                    positive x-axis. Useful when converting to polar coordinates.
+
+
+cbrt(x)                     Returns the cube root of x.
+
+ceil(x)                     Rounds up to the nearest integer.
+
+cos(r)                      Returns the cosine of r.
+
+cosh(x)                     Returns the hyperbolic cosine of r.
+
+exp(x)                      Returns ex.
+
+expm1(x)                    Returns ex-1.0
+
+floor(x)                    Rounds down to the nearest integer.
+
+hypot(a,b)                  Returns sqrt(x2+y2).
+
+IEEEremainder(x,y)          Returns the remainder of the two numbers as described in the IEEE 754 standard.
+
+log(x)                      Returns the natural logarithm of x.
+
+log10(x)                    Returns the base 10 logarithm of x.
+
+log1p(x)                    Returns log(x+1).
+
+max(x,y)                    Returns the highest number of x and y.
+
+min(x,y)                    Returns the smallest number of x and y.
+
+mod(a,b)                    Converts a and b to integers and returns the remainder of a/b.
+
+pow(x,y)                    Returns x raised to the power of y.
+
+random()                    Returns a random number x where 0 ≤ x < 1.
+
+round(x)                    Rounds x to the nearest integer.
+
+signum(x)                   Returns 1 if x>0, -1 if x<0 and 0 if x=0.
+
+sin(r)                      Returns the sine of r.
+
+sinh(x)                     Returns the hyperbolic sine of x.
+
+sqrt(x)                     Returns the square root of x.
+
+tan(r)                      Returns the tangent of r.
+
+tanh(x)                     Returns the hyperbolic tangent of x.
+
+toDegrees(r)                Converts a radian angle to degrees.
+
+toRadians(d)                Converts a degree angle to radians.
+
+Here are some examples of use.
+
+// Load a with a random number
+lda #random()*256
+// Generate a sine curve
+.fill 256,round(127.5+127.5*sin(toRadians(i*360/256)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
