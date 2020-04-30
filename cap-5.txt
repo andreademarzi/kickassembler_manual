@@ -17,18 +17,18 @@ Ecco il set standard di operatori per la generazione di booleani:
 Tabella 5.1 Funzioni generatrici booleane
 
 
-Nome 	    Operatore 	        Esempio                 	Descrizione
-Pari 	        == 	             a == b 	            Restituisce vero se a è uguale a b, altrimenti falso. 
+Nome 	           Operatore 	        Esempio                 	Descrizione
+Pari 	             == 	            a == b 	            Restituisce vero se a è uguale a b, altrimenti falso. 
 
-Non uguale 	    ! = 	         a! = b              	Restituisce vero se a non è uguale a b, altrimenti falso.
+Non uguale 	      ! = 	            a! = b              Restituisce vero se a non è uguale a b, altrimenti falso.
 
-Maggiore 	    > 	             A> B 	                Restituisce vero se a è maggiore di b, altrimenti falso.
+Maggiore 	         > 	              A> B 	              Restituisce vero se a è maggiore di b, altrimenti falso.
 
-Di meno 	    < 	             a <b                	Restituisce vero se a è minore di b, altrimenti falso.
+Di meno 	         < 	              a <b                Restituisce vero se a è minore di b, altrimenti falso.
+  
+Più grande di      > = 	            a> = b 	            Restituisce vero se a è maggiore o uguale a b, altrimenti falso.
 
-Più grande di 	> = 	         a> = b 	            Restituisce vero se a è maggiore o uguale a b, altrimenti falso.
-
-Meno di 	    <= 	             un <= b 	            Restituisce vero se a è minore o uguale a b, altrimenti falso.
+Meno di 	         <= 	            un <= b 	          Restituisce vero se a è minore o uguale a b, altrimenti falso.
 
 
 Tutti gli operatori sono definiti per valori numerici, altri valori hanno definito un sottoinsieme di quanto sopra. Ad esempio, non puoi dire che un booleano sia maggiore di un altro, ma puoi vedere se hanno gli stessi valori: 
@@ -38,7 +38,13 @@ Tutti gli operatori sono definiti per valori numerici, altri valori hanno defini
 
 Ai valori booleani è assegnato un set di operatori. Questi sono i seguenti:
 
+
+
+
+
+
 Tabella 5.2 Operatori booleani
+
   
 Name          Operator           Example                    Description
 Not             !                   !a                   Restituisce vero se a è falso, altrimenti falso.
@@ -58,6 +64,7 @@ Come in linguaggi come C ++ o Java, && e || gli operatori sono in corto circuito
 
 
 5.2. La direttiva .if
+
 
 Le direttive If funzionano come nei linguaggi di programmazione standard. Con una direttiva .if hai la direttiva procedente eseguita solo se una determinata espressione booleana viene valutata come vera. Ecco alcuni esempi: 
 
@@ -99,7 +106,8 @@ Aggiungendo un'istruzione else è possibile eseguire un'espressione se l'espress
 
 
 
-5.3. Punto interrogativo se è
+5.3. Punto interrogativo if's
+
 
 Come noto da linguaggi come Java e C ++, è possibile utilizzare la scrittura compatta se espressione nella seguente forma:
 
