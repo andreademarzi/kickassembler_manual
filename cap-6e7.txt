@@ -1,0 +1,465 @@
+Capitolo 6. Strutture dati
+
+Nel capitolo esamineremo i dati definiti dall'utente e le strutture predefinite.
+6.1. Strutture definite dall'utente
+
+È possibile definire le proprie strutture. Una struttura è una raccolta di variabili come ad esempio un punto costituito da una coordinata x e ay: 
+
+// Define a point structure
+.struct Point {x,y}
+// Create a point with x=1 and y=2 and print it
+.var p1 = Point(1,2)
+.print ”p1.x=” + p1.x
+.print ”p1.y=” + p1.y
+// Create a point with the default contructor and modify its arguments
+.var p2 = Point()
+.eval p2.x =3
+.eval p2.y =4
+
+Definisci una struttura con la direttiva .struct. La struttura sopra ha il nome 'Punto' ed è composta dalle variabili xe y. Per creare un'istanza della struttura, utilizzare il suo nome come funzione. Non è possibile fornire argomenti o fornire i valori init di tutte le variabili. I valori generati dalle strutture vengono utilizzati come qualsiasi altra variabile, ad esempio:
+
+     lda #0
+     ldy #p1.y
+     sta charset+(p1.x>>3)*height,y
+
+
+Puoi accedere alle informazioni sulla struttura e accedere ai campi in modo più generico usando le funzioni della struttura: 
+
+.struct Person{firstName,lastName}
+.var p1 = Person(“Peter”,”Schmeichel”)
+
+.print p1.getStructName()        // Prints ‘Person’
+.print p1.getNoOfFields()        // Prints ‘2’
+.print p1.getFieldNames().get(0) // Prints ‘firstName’
+
+.eval p1.set(0,”Kasper”)         // Sets firstName to Kasper
+.print p1.get(“lastName”)        // Prints “Schmeichel”
+
+
+// Copy values from one struct to another
+.var p2 = Person()
+.for (var i=0; i<p1.getNoOfFields(); i++)
+   .eval p2.set(i,p1.get(i))
+
+// Print the content of a struct:
+//   firstName = Casper
+//   lastName = Schmeichel
+.for (var i=0; i<p1.getNoOfFields(); i++) {
+    .print p1.getFieldNames().get(i) + “ = “ + p1.get(i)
+}
+
+Ecco un elenco delle funzioni definite sui valori di struct
+
+
+
+
+Tabella 6.1 Funzioni di valore strutturale
+
+
+funzioni 	               Descrizione
+getStructName ()    	Restituisce il nome della struttura.
+
+getNoOfFields ()     	Restituisce il numero di campi definiti.
+
+getFieldNames ()    	Restituisce un elenco contenente i nomi dei campi.
+
+ottenere (index) 	    Restituisce il valore del campo dato da un indice intero (0 è il primo file definito).
+
+ottenere (nome) 	    Restituisce il valore del campo dato da una stringa del nome campo.
+
+set (index, value) 	    Imposta il valore di un campo dato da un indice intero.
+
+set (name, valore) 	    Imposta il valore di un campo assegnato da un nome.
+
+
+
+
+6.2. Elenco valori
+
+I valori di elenco vengono utilizzati per contenere un elenco di altri valori. Per creare un elenco si utilizza la funzione 'Elenco ()'. Prende un argomento che indica quanti elementi contiene. Se viene lasciato fuori, l'elenco creato sarà vuoto. Utilizzare le operazioni get e set per recuperare e impostare gli elementi. 
+
+
+
+
+      .var myList = List(2)
+      .eval myList.set(0,25)
+      .eval myList.set(1, "Hello world")
+      .byte myList.get(0)/ Will give .byte 25
+      .text myList.get(1)// Will give .text "Hello world"
+
+
+È possibile determinare il numero di elementi in un elenco con la funzione size e la funzione add aggiunge elementi aggiuntivi.
+
+
+.var greetingsList = List()
+.eval greetingsList.add("Fairlight", "Booze Design", "etc." )
+.byte listSize = greetingsList.size()
+// gives .byte 3
+
+Un modo compatto per riempire un elenco di elementi è:
+
+.var greetingsList = List().add("Fairlight", "Booze Design", "etc.")
+
+Ecco un elenco di funzioni definite sui valori di elenco:
+
+
+funzioni 	               Descrizione
+
+get(n) 	                         Ottiene l'ennesimo elemento (il primo elemento inizia da zero).
+
+set(n, valore)         	         Imposta l'ennesimo elemento (il primo elemento inizia da zero).
+
+add(valore1, valore2, ...) 	     Aggiungi elementi alla fine dell'elenco.
+
+addAll(list) 	                 Aggiungi tutti gli elementi da un altro elenco.
+
+size() 	                         Restituisce la dimensione dell'elenco.
+
+remove(n)                        Rimuove l'ennesimo elemento.
+
+Shuffle() 	                     Mette gli elementi dell'elenco in ordine casuale.
+
+reverse() 	                     Mette gli elementi dell'elenco in ordine inverso.
+
+sort()                           Ordina gli elementi dell'elenco (sono supportati solo i valori numerici). 
+
+
+
+
+
+
+6.3. Lavorare con valori mutevoli
+
+Il valore dell'elenco descritto nel capitolo precedente è speciale poiché è modificabile, il che significa che può modificarne il contenuto. In un determinato momento un elenco può contenere i valori [1,6,7] e in un altro momento [1,4,8,9]. I valori precedentemente descritti nel manuale (Numbers, Strings, Booleans) sono immutabili poiché istanze come 1, false o “Hello World” non possono cambiare. In Kick Assembler 3 e versioni successive, dovrai bloccare i valori mutabili se vuoi usarli in un passaggio diverso da quello in cui sono stati definiti. Quando un valore è bloccato, diventa immutabile e la chiamata a una funzione che modifica il suo contenuto causerà un errore. Esistono due modi per bloccare un valore modificabile.Puoi chiamare la sua funzione di blocco: 
+
+// Locking a list with the lock function
+.var list1 = List().add(1,3,5).lock()
+
+Oppure puoi definirlo all'interno di una direttiva .define:
+
+// The define directive locks the defined variables outside its scope
+.define list2, list3 {
+     .var list2 = List().add(1,2)
+     .var list3= List()
+     .eval list3.add("a")
+     .eval list3.add("b")
+}
+//.eval list3.add("c") // This will give an error
+
+La direttiva .define definisce i simboli elencati dopo la parola chiave .define (list2 e list3). Le direttive all'interno di {…} sono eseguite in un nuovo ambito in modo che le variabili definite localmente non possano essere viste dall'esterno. Dopo aver eseguito le direttive interne, i valori definiti vengono bloccati e inseriti come costanti nell'ambito esterno.
+
+Le direttive interne sono eseguite in "modalità funzione", che è un po 'più veloce e richiede meno memoria rispetto all'esecuzione ordinaria. Quindi, se si utilizza per i loop per eseguire alcuni calcoli pesanti, è possibile ottimizzare le prestazioni inserendo il loop all'interno di una direttiva di definizione. Come suggerisce il nome "modalità funzione", anche le direttive inserite all'interno delle funzioni vengono eseguite in "modalità funzione". In 'mode mode' puoi usare solo le direttive di script (come .var, .const, .eval, .enum, ecc.) Mentre l'output di byte genera direttive (come lda # 10, byte $ 22, .word $ 33, .fill 10, 0 ) non sono consentiti. 
+
+
+
+
+
+
+
+
+6.4. Valori Hashtable
+
+Gli hashtable sono tabelle che associano le chiavi ai valori. È possibile definire un hashtable con la funzione Hashtable (). Per inserire e recuperare valori si usano le funzioni put e get e con la funzione keys è possibile recuperare un elenco di tutte le chiavi nella tabella: 
+
+.define ht {
+    // Define the table
+    .var ht = Hashtable()
+    // Enter some values (put(key,value))
+    .eval ht.put("ram", 64)
+    .eval ht.put("bits", 8)
+    .eval ht.put(1, "Hello")
+    .eval ht.put(2, "World")
+    .eval ht.put("directions", List().add("Up","Down","Left","Right"))
+
+    // Brief ways of initialising tables
+    .var ht2 = Hashtable().put(1, "Yes").put(2, "No")
+    .var ht4 = Hashtable().put(1,"a", 2,"b", 3,"c")
+}
+
+// Retrieve the values
+.print ht.get(1)
+// Prints Hello
+.print ht.get(2)
+// Prints World
+.print "ram = " + ht.get("ram") + "kb"
+// Prints ram=64kb
+28Data Structures
+
+// Print all the keys
+.var keys = ht.keys()
+.for (var i=0; i<keys.size(); i++) {
+.print keys.get(i)  // Prints "ram", "bits", 1, 2, directions
+}
+
+Quando un valore viene utilizzato come chiave, viene utilizzata la rappresentazione della stringa di valori. Ciò significa che ht.get ("1.0") e ht.get (1) restituiscono lo stesso elemento. Se si tenta di ottenere un elemento che non è presente nella tabella, viene restituito null. 
+
+
+
+
+
+Tabella 6.3 Valori Hashtable
+
+Funzione 	                                   Descrizione
+put(key,value)      	                   Mappa "chiave" su "valore".Se key è stata precedentemente mappata su un valore,mappatura precedente viene persa.
+                                           Viene restituita tabella stessa.
+
+put(key,value,key,value,key,value...) 	   Mappa più chiavi su più valori. Viene restituita la tabella stessa.
+
+get(key) 	                               Restituisce il valore mappato su 'chiave'. Viene restituito un valore null se non è stato mappato alcun valore sulla chiave.
+
+keys()                                     Restituisce un valore di elenco di tutte le chiavi nella tabella.
+ 
+containsKey(key)                           Restituisce vero se la chiave è definita nella tabella, altrimenti falso.
+
+remove(key) 	                           Rimuove la chiave e il suo valore dalla tabella.
+
+
+
+
+
+
+
+Capitolo 7. Funzioni e macro
+
+Questo capitolo mostra come raggruppare le direttive in unità per la successiva esecuzione. In altre parole, come definire e usare funzioni, macro e infine pseudo comandi che sono un tipo speciale di macro.
+
+
+
+7.1. funzioni
+
+È possibile definire le proprie funzioni che è possibile utilizzare come una qualsiasi delle funzioni di libreria build in. Ecco un esempio di una funzione: 
+
+.function area(width,height) {
+     .return width*height
+}
+.var x = area(3,2)
+lda #10+area(4,8)
+
+Le funzioni consistono in direttive che non generano byte come .eval, .for, .var e .if. Quando l'assemblatore valuta la direttiva .return restituisce il valore fornito dall'espressione procedente. Se non viene fornita alcuna espressione o se non viene raggiunta alcuna direttiva .return, viene restituito un valore null. Ecco alcuni altri esempi di funzioni: 
+
+
+// Returns a string telling if a number is odd or even
+.function oddEven(number) {
+    .if ([number&1] == 0 ) .return “even”
+    else .return “odd”
+}
+
+// Inserts null in all elements of a list
+.function clearList(list) {        
+      // Return if the list is null
+      .if (list==null) .return
+      .for(var i=0; i<list.size(); i++) {
+            list.set(i,null)
+      }
+}
+// Empty function – always returns null
+.function emptyFunction() {
+}
+
+Puoi avere diverse funzioni con lo stesso nome, purché abbiano un numero diverso di argomenti. Quindi questo è un codice valido: 
+
+.function polyFunction() { .return 0 }
+.function polyFunction(a) { .return 1 }
+.function polyFunction(a,b) { .return 2 }
+
+
+
+
+
+7.2. Macros
+
+Le macro sono raccolte di direttive assembler. Quando vengono chiamati, generano il codice come se le direttive fossero inserite nella chiamata macro. Il codice seguente definisce ed esegue la macro 'SetColor': 
+
+
+// Define macro
+.macro SetColor(color) {
+    lda #color
+    sta $d020
+}
+
+// Execute macro
+:SetColor(1)
+SetColor(2)      // The colon in front of macro calls is optional from version 4.0
+
+Una macro può avere un numero qualsiasi di argomenti. Le chiamate macro sono incapsulate in un ambito, quindi qualsiasi variabile definita all'interno di una macro non può essere vista dall'esterno. Ciò significa che una serie di chiamate macro alla stessa macro non interferisce: 
+
+// Execute macro
+ClearScreen($0400,$20)// Since they are encapsulated in a scope
+ClearScreen($4400,$20)// the two resulting loop labels don’t
+                      // interfere
+
+// Define macro
+.macro ClearScreen(screen,clearByte) {
+    lda #clearByte
+    ldx #0
+Loop:                  // The loop label can’t be seen from the outside
+
+    sta screen,x
+    sta screen+$100,x
+    sta screen+$200,x
+    sta screen+$300,x
+    inx
+    bne Loop
+}
+
+Si noti che è possibile utilizzare la macro prima che venga dichiarata.
+
+Le macro in Kick Assembler sono un po 'più flessibili delle normali macro. Possono chiamare altre macro o persino chiamare se stessi - Assicurati solo che ci sia una condizione per fermare la ricorsione in modo da non ottenere un ciclo infinito. 
+
+
+
+
+
+7.3. Comandi pseudo
+
+I pseudo comandi sono un tipo speciale di macro che accetta argomenti di comando, come # 20, table, y o ($ 30), y come argomenti proprio come fanno gli mnemonici. Con questi puoi creare i tuoi comandi estesi. Ecco un esempio di un comando mov che sposta un byte da un posto all'altro: 
+
+.pseudocommand mov src:tar {
+    lda src
+    sta tar
+}
+
+Si utilizza il comando mov in questo modo:
+
+mov     #10 : $1000             //  Sets $1000 to 10 (lda #10, sta $1000)
+mov     source : target         //  target = source(lda source, sta target)
+mov     source,x : target,y     //  (lda source,x , sta target,y)
+mov     #20 : ($30),y           //  (lda #20, sta ($30),y )
+
+Gli argomenti di uno pseudo comando sono separati da due punti e puoi usare qualsiasi argomento che daresti a un mnemonico.
+
+Nota: nella versione 3.x, gli argomenti sono separati da punto e virgola. Per compilare il vecchio codice utilizzare l'opzione della riga di comando -pseudoc3x o convertire il codice con il convertitore da 3.xa 4.x.
+
+È possibile aggiungere due punti opzionali davanti alle chiamate pseudocomandi. Ciò consente di chiamare un comando con lo stesso nome di un mnemonico. 
+
+.pseudocommand adc arg1 : arg2 : tar {
+        lda arg1
+        adc arg2
+        sta tar
+}
+
+adc #$10                // This calls the standard mnemonic
+:adc #$20 : $10 : $20   // This calls the pseudocommand
+
+Gli argomenti del comando vengono passati allo pseudo comando come CmdValues. Questi sono valori che contengono un tipo di argomento e un valore numerico. Puoi accedervi con le loro funzioni getter. Ecco una tabella delle funzioni: 
+
+Table 7.1. CmdValue Functions
+
+Function            Description                                             Example
+
+getType()           Restituisce una costante di tipo .                   #20 will return AT_IMMEDIATE.
+                    (vedere la tabella seguente)
+
+getValue()          Restituisce il valore.                               #20 will return 20.
+
+
+Le costanti del tipo di argomento sono le seguenti:
+
+Table 7.2. Argument Type Constants
+
+Costante                	Esempio
+
+AT_ABSOLUTE 	            $ 1000
+
+AT_ABSOLUTEX 	            $ 1000, x
+
+AT_ABSOLUTEY 	            $ 1000, y
+
+AT_IMMEDIATE 	            # 10
+
+AT_INDIRECT 	            ($ 1000)
+
+AT_IZEROPAGEX 	            ($ 10, x)
+
+AT_IZEROPAGEY 	            ($ 10), y
+
+AT_NONE 	 
+
+
+Alcune modalità di indirizzamento, come zeropage assoluto e relativo, mancano nella tabella sopra. Questo perché l'assemblatore rileva automaticamente quando devono essere utilizzati dalla modalità assoluta corrispondente.
+
+È possibile costruire nuovi argomenti di comando con la funzione CmdArgument. Se vuoi costruire un nuovo argomento immediato con il valore 100, fallo in questo modo: 
+
+.var myArgument = CmdArgument (AT_IMMEDIATE, 100)
+lda myArgument // Fornisce lda # 100
+
+Ora usiamo le funzionalità sopra per definire un set di istruzioni a 16 bit. Iniziamo definendo una funzione che, dato il primo argomento, restituirà il successivo in un'istruzione a 16 bit. 
+
+.function _16bitnextArgument(arg) {
+        .if (arg.getType()==AT_IMMEDIATE)
+            .return CmdArgument(arg.getType(),>arg.getValue())
+        .return CmdArgument(arg.getType(),arg.getValue()+1)
+}
+
+Restituiamo sempre un argomento dello stesso tipo dell'originale. Se si tratta di un argomento immediato, impostiamo il valore come il byte alto del valore originale, altrimenti lo incrementiamo solo di 1. Ciò fornirà l'argomento corretto per le modalità di indirizzamento ABSOLUTE, ABSOLUTEX, ABSOLUTEY e IMMEDIATE. Con questo possiamo facilmente definire alcuni comandi a 16 bit: 
+
+.pseudocommand inc16 arg {
+    inc arg
+    bne over
+    inc _16bitnextArgument(arg)
+over:
+}
+
+.pseudocommand mov16 src:tar {
+    lda src
+    sta tar
+    da _16bitnextArgument(src)
+    sta _16bitnextArgument(tar)
+}
+
+.pseudocommand add16 arg1 : arg2 : tar {
+    .if (tar.getType()==AT_NONE) .eval tar=arg1
+    clc
+    lda arg1
+    adc arg2
+    sta tar
+    lda _16bitnextArgument(arg1)
+    adc _16bitnextArgument(arg2)
+    sta _16bitnextArgument(tar)
+
+Puoi usarli in questo modo:
+
+inc16 counter
+mov16 #irq1 : $0314
+mov16 #startAddress : $30
+add16 $30 : #128
+add16 $30 : #$1000: $32
+
+Nota come l'argomento target del comando add16 può essere lasciato fuori. In questo caso, un argomento con tipo AT_NONE viene passato al comando pseudo e il primo argomento viene quindi utilizzato come destinazione.
+
+Con la direttiva pseudo comando puoi definire le tue librerie di istruzioni estese, che possono accelerare alcune delle attività più banali della programmazione. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
