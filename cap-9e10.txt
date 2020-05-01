@@ -1,0 +1,1039 @@
+Capitolo 9. Ambiti e spazi dei nomi
+
+Ambiti e spazi dei nomi vengono utilizzati per evitare che entità come simboli e funzioni in diverse parti del programma si scontrino tra loro. Questa sezione illustrerà come funzionano.
+9.1. Scopes
+
+Gli ambiti sono contenitori di simboli (variabili, costanti ed etichette). Può esserci un solo simbolo di ciascun nome in un ambito. Gli ambiti si trovano automaticamente in molte situazioni. Ad esempio, un ambito viene impostato quando si esegue una macro. Ciò impedisce alle etichette interne di scontrarsi se si esegue la macro due volte.
+
+Il modo più semplice per definire un ambito da soli è utilizzare le parentesi..var x = 1
+
+{
+   .var x = 2 // <- questa x non si scontrerà con la precedente
+}
+
+
+
+
+ 9.2. Namespace
+
+Gli spazi dei nomi sono contenitori di funzioni, macro e pseudocomandi. Ci può essere solo una di ognuna di queste entità nello spazio dei nomi. Ogni spazio dei nomi ha anche un proprio ambito associato, quindi ogni volta che si definisce uno spazio dei nomi viene automaticamente definito un ambito.
+
+Nell'esempio seguente viene mostrato un modo semplice per dichiarare uno spazio dei nomi. Le direttive dello spazio dei nomi verranno descritte più dettagliatamente in seguito (e spesso la direttiva .filenamespace è più utile):
+
+ .function myFunction() { .return 1 }
+label1:
+.namespace mySpace {
+    .function myFunction() { .return 1 } // <- This won't collide
+    label1: <- This won't collide
+}
+
+Lo spazio dei nomi può essere dichiarato più di una volta. La seconda volta che lo dichiari, continuerà semplicemente con lo spazio dei nomi già esistente. 
+
+.namespace repeatSpace {
+   infinite: jmp *
+   .function myFunc () {return 1}
+}
+
+namespace repeatSpace {// <- Non dare un errore, riutilizziamo lo namespace
+   jmp infinito
+   .function myFunc () {return 2} // <- Questo dà un errore, myFunc è già definito
+}
+
+Se non si è sicuri dello spazio dei nomi in cui ci si trova, è possibile ottenere il nome dalla funzione 'getNamespace ()'. 
+
+.print "Namespace =" + getNamespace ()
+.namespace MySpace {
+   .print "Namespace =" + getNamespace ()
+   .namespace MySubSpace {
+      .print "Namespace =" + getNamespace ()
+   }
+}
+
+Quanto sopra mostrerà:
+
+  Spazio dei nomi = <RootNS>
+  Namespace = MySpace
+  Namespace = MySpace.MySubSpace
+
+
+
+
+
+
+
+
+
+9.3. Gerarchia di scoping
+
+Gli spazi dei nomi e gli ambiti sono organizzati in una gerarchia. Ogni spazio dei nomi ha un genitore, ad eccezione dello spazio dei nomi di sistema che è lo spazio dei nomi che contiene tutte le funzionalità integrate di Kick Assembler. Sotto questo è lo spazio dei nomi di root . Come suggerisce il nome, è lo spazio dei nomi radice del codice sorgente.
+
+Quindi la gerarchia è così:
+
+    Spazio dei nomi di sistema e ambito : contiene mnemonici, costanti, funzioni, macro e pseudocomandi di sistema.
+
+    Spazio dei nomi e ambito root: la radice del codice sorgente.
+
+    Spazio dei nomi e ambiti definiti dall'utente : creati dalle direttive dello spazio dei nomi.
+
+    Ambiti definiti dall'utente : creati da macro, funzioni, for-loop, parentesi {}, ecc.
+
+    Altri ambiti definiti dall'utente ...
+
+Vediamo un semplice esempio. Contiene alcuni ambiti e del codice senza senso: 
+
+* = $ 1000
+
+inizio:
+loop: // <- 'loop' definito nell'ambito root
+
+{// <- ambito parentesi 1 
+ciclo continuo: 
+   {// <- ambito parentesi 2
+         ldx # 0
+   loop: stx $ d020
+         INX
+         bne loop
+         inizio jmp
+   }
+}
+
+Il codice sopra formerà la gerarchia dell'ambito: Ambito del sistema <- Root Scope <- BracketScope1 <- BracketScope2.
+
+Quando Kick Assembler risolve un simbolo, controlla se è presente nell'ambito corrente. Se non può essere trovato, appare nell'ambito genitore. Se non è ancora possibile trovarlo, appare nell'ambito genitore del genitore e così via. Nell'esempio sopra, il "loop jmp" viene inserito in BracketScope2, quindi "loop" viene risolto con il simbolo del loop in BracketScope2. Ma 'start' non è definito in BracketScope2 o BracketScope1 quindi verrà risolto con l'etichetta nell'ambito root.
+
+Poiché non è stato definito alcuno spazio dei nomi in quanto sopra, la gerarchia dello spazio dei nomi è: Spazio dei nomi di sistema <- Spazio dei nomi radice. Le entità degli spazi dei nomi vengono risolte in modo simile al meccanismo di risoluzione dell'ambito spiegato sopra. 
+
+
+
+
+
+
+9.4. Le direttive dello spazio dei nomi 
+
+Come già visto, puoi dichiarare gli spazi dei nomi con la direttiva namespace. Quando dichiarato inserisce un simbolo all'interno dell'ambito dello spazio dei nomi principale in modo che le etichette all'interno siano accessibili come campi locali del simbolo dello spazio dei nomi:
+
+.namespace vic {
+    .label borderColor = $ d020
+    .label backgroundColor0 = $ d021
+    .label backgroundColor1 = $ d022
+    .label backgroundColor2 = $ d023
+}
+
+        lda # 0
+        sta vic.backgroundColor0
+        sta vic.borderColor
+
+Gli spazi dei nomi vengono normalmente utilizzati per assicurarsi che il codice in un file di origine (come una libreria) non si scontri con altre parti del codice. Per questo, posiziona la direttiva spazio dei nomi nella parte superiore del file e tutto ciò che viene inserito nello spazio dei nomi desiderato: 
+
+/ * FILE 0 * /
+
+        jsr part1.init
+        jsr part1.exec
+        jsr part2.init 
+        jsr part2.exec
+        rts
+
+/ * FILE 1 * /
+.filenamespace part1
+dentro:
+        ...
+        rts
+
+exec:
+        ...
+        rts
+
+/ * FILE 2 * /
+.filenamespace part2
+dentro:
+        ...
+        rts
+
+exec:
+        ...
+        rts
+
+
+
+
+
+9.5. Uscita dall'ambito o dallo spazio dei nomi corrente
+
+Per sfuggire all'ambito corrente, utilizzare @ per fare riferimento all'ambito radice. Nel seguente codice '@myLabel' accedi all'etichetta myLabel nell'ambito root: 
+
+.label myLabel = 1
+{
+   .label myLabel = 2
+
+   .print "scoped myLabel =" + myLabel // <- Restituisce 2	
+   .print "root myLabel =" + @myLabel // <- Restituisce 1
+}
+
+Lo stesso può essere fatto per funzioni, macro e pseudo comandi. Quindi il seguente esempio stamperà 'root' non 'mySpace': 
+
+.function myFunction () {.return "root"}
+.namespace mySpace {
+   .function myFunction () {.return "mySpace"}
+   .print @myFunction ()
+}
+
+È inoltre possibile inserire nuove entità nell'ambito root quando le si definisce da un altro ambito:
+
+   jsr outside_label 
+   rts
+{
+@outside_label:
+    
+   lda # 0
+   sta $ d020
+   sta $ d020
+   rts
+}
+
+o:
+
+{
+   .label @x = 1234
+   .var @ y = "Ciao mondo"
+   .const @ z = true
+}
+
+.print "x =" + x
+.print "y =" + y
+.print "z =" + z
+
+O per funzioni, macro o pseudo comandi, qui mostrati in un file di libreria: 
+
+#import "mylib.lib"
+
+.print myFunction ()
+MyMacro ()
+MyPseudoCommand
+
+/ * File mylib.lib * /
+#importonce
+.filenamespace MyLibrary
+
+.function @myFunction () { 
+   .return 1
+}
+
+.macro @MyMacro () { 
+   .print "Macro chiamata"
+
+
+}
+
+.macro @MyPseudoCommand { 
+   .print "PseudoCommand Called"
+}
+
+
+
+
+
+
+9.6. Etichetta ambiti
+
+Se si dichiara un ambito dopo un'etichetta è possibile accedere alle etichette all'interno dell'ambito come campi sull'etichetta dichiarata. Ciò è utile se si utilizza l'ambito per rendere locali le etichette delle funzioni: 
+
+        lda # ''
+        sta clearScreen.fillbyte + 1
+        jsr clearScreen
+        rts
+
+schermo pulito: {
+fillbyte: lda # 0
+        ldx # 0
+ciclo continuo:
+        sta $ 0400, x
+        sta $ 0500, x
+        sta $ 0600, x
+        sta $ 0700, x
+        INX
+        bne loop
+        rts
+}
+
+Il codice sopra riempie lo schermo di spazi neri. Il codice che chiama la subroutine clearScreen utilizza clearScreen.fillbyte per accedere all'etichetta fillbyte. Se usi la direttiva label per definire l'etichetta fillbyte, il codice può essere reso un po 'più carino: 
+
+        lda # 'a'
+        sta clearScreen2.fillbyte
+        jsr clearScreen2
+        rts
+
+ClearScreen2: {
+        .label fillbyte = * + 1
+        lda # 0
+        ldx # 0
+ciclo continuo:
+        sta $ 0400, x
+        sta $ 0500, x
+        sta $ 0600, x
+        sta $ 0700, x
+        INX
+        bne loop
+        rts
+}
+
+Ora non devi ricordare di aggiungerne uno all'indirizzo prima di memorizzare il byte di riempimento.
+
+Gli ambiti delle etichette funzionano anche con la direttiva label, quindi è anche possibile scrivere programmi come questo: 
+
+.label mylabel1 = $ 1000 {
+    .label mylabel2 = $ 1234
+}
+.print “mylable2 =” + mylabel1.mylabel2
+
+
+
+
+
+
+9.7. Accesso alle etichette locali di macro e pseudocomandi
+
+Gli ambiti delle etichette vengono inoltre creati quando si posiziona un'etichetta prima dell'esecuzione di una macro o di uno pseudocomando, come dimostrato nel seguente programma: 
+
+        * = $ 1000
+inizio: inc c1.color
+        dec c2.color
+c1:: setColor ()
+c2:: setColor ()
+        inizio jmp
+
+.macro setColor () {
+        .label color = * + 1
+        lda # 0
+        sta $ d020
+}
+
+In questo modo, è possibile accedere alle etichette di una macro eseguita.
+
+
+
+
+
+
+9.8. Accesso alle etichette locali dei cicli For / While
+
+Posizionando un'etichetta davanti a un ciclo for o a while, viene creato un array ambito etichetta. In questo modo è possibile accedere alle etichette interne di un loop dall'esterno o alle etichette di un loop da un altro loop: 
+
+        .for (var i = 0; i <20; i ++) { 
+            lda #i 
+            sta loop2 [i] .color + 1 
+        }
+
+loop2: .for (var i = 0; i <20; i ++) { 
+colore: lda # 0
+            sta $ d020 
+        }
+
+
+
+
+
+
+
+
+
+9.9. Accesso alle etichette locali di if
+
+Posizionando un'etichetta davanti a una direttiva .if è possibile accedere alle etichette del ramo preso (vero o falso) della direttiva. Il simbolo deve essere definito solo nel ramo preso. Se la condizione viene valutata come falsa e non esiste alcun ramo falso, tutti i riferimenti ai simboli generano un errore "simbolo non definito". Ecco un esempio: 
+
+        jmp myIf.label
+myIf:   .if (true) {
+            ...
+label:       lda #0 // <-- Jumps here
+             ...
+          } else {
+             ...
+label:      nop
+            ...
+}
+
+
+
+
+
+
+
+Capitolo 10. 
+
+Segmenti
+
+10.1. introduzione
+
+I segmenti sono elenchi di blocchi di memoria utilizzati per organizzare il codice. Puoi usarli per definire l'ordine in cui le cose sono poste in memoria (dati dopo il codice ecc.). È possibile combinare segmenti per formare nuovi segmenti ed è possibile utilizzare modificatori per elaborare l'output di un segmento. Infine, puoi indirizzare l'output di un segmento su file o dischi o semplicemente buttarlo via.
+
+Questo è implementato in Kick Assembler in modo compatibile con le versioni precedenti, quindi se non si utilizzano i segmenti, tutto viene posizionato su un segmento predefinito e diretto al file di output standard come al solito.
+
+
+
+
+
+
+
+10.2. Alcuni esempi rapidi
+
+Prima di entrare nel dettaglio di come funzionano i segmenti, diamo un'occhiata ad alcuni esempi di utilizzo. Potresti non capire tutto nei seguenti esempi, ma aiuta a sapere dove stiamo andando prima di entrare nei dettagli.
+
+Se vuoi avere una sezione del tuo codice in uscita su un altro file, puoi assemblarla in un segmento e scrivere quel segmento in un file come questo: 
+
+.segment File1 [outPrg="MyFile.prg"]
+        *=$1000
+        lda #00
+        ... more code ...
+.segment Default
+
+Se si desidera applicare una patch a un file, è possibile caricare il file in un segmento Base, inserirvi sopra un segmento Patch con le modifiche e scrivere il risultato in un file. Poiché la patch è in cima, sovrascriverà la base: 
+
+.file [name="Out.prg", segments="Base,Patch", allowOverlap]
+.segment Base [prgFiles="basefile.prg"]
+.segment Patch []
+        *=$8021 "Insert jump"
+        jmp $8044
+
+I segmenti possono anche essere utilizzati per l'output del codice in formati alternativi. Ecco un esempio di scrittura del codice per una cartuccia con 4 banchi:
+
+I segmenti possono anche essere utilizzati per l'output del codice in formati alternativi. Ecco un esempio di scrittura del codice per una cartuccia con 4 banchi: 
+
+.segment CARTRIDGE_FILE [outBin="myfile.bin"]
+        .segmentout [segments ="BANK1"]
+        .segmentout [segments ="BANK2"]
+        .segmentout [segments ="BANK3"]
+        .segmentout [segments ="BANK4"]
+
+        .segmentdef
+        .segmentdef
+        .segmentdef
+        .segmentdef
+
+BANK1 [min=$1000, max=$1fff, fill]
+BANK2 [min=$1000, max=$1fff, fill]
+BANK3 [min=$1000, max=$1fff, fill]
+BANK4 [min=$1000, max=$1fff, fill]
+
+.segment BANK1
+..code for segment 1 goes here...
+
+.segment BANK2
+..code for segment 2 goes here...
+
+.segment BANK3
+..code for segment 3 goes here...
+
+.segment BANK4
+..code for segment 4 goes here...
+
+Un segmento viene impostato per ogni banco e vengono emessi nell'ordine giusto in un file binario. Il codice nei 4 segmenti è limitato allo spazio degli indirizzi $ 1000- $ 1 e seguenti. Notare come lo stesso spazio indirizzo può essere utilizzato più volte, poiché il codice risiede in segmenti diversi.
+
+In Kick Assembler, un segmento è un elenco di blocchi di memoria, quindi esaminiamo prima questi.
+
+Un blocco di memoria viene generato ogni volta che si utilizza la direttiva * =. Ha un inizio, un nome opzionale e potrebbe essere contrassegnato come virtuale. Se aggiungi il codice senza prima definire un blocco di memoria, viene creato per te un blocco predefinito. Ecco alcuni esempi di blocchi di memoria. 
+
+    inc $d020           // This create a default memory block
+    jmp *-3 
+    *=$1000             // Start of memoryblock 2 (unnamed)
+    lda #1
+    sta $d020
+    rts
+    *=$4000 "block3"    // Start of memoryblock 3
+    lda #2
+    sta $d021
+    rts
+
+Un segmento è un elenco di blocchi di memoria. Dato che non hai selezionato alcun segmento nel codice sopra, sono tutti posizionati sul segmento "Predefinito".
+
+Un segmento è definito dalla direttiva .segmentdef e tu usi la direttiva .segment per decidere a quale segmento aggiungere il codice: 
+
+     // Define two segments
+     .segmentdef MySegment1
+     .segmentdef MySegment2 [start=$1000]
+
+     // Add code to segment1
+     .segment MySegment1
+     *=$4000
+     ldx #30
+l1:  inc $d021
+     dex
+     bne l1
+    // Add code to segment2 (Using default block starting in $1000)
+    .segment MySegment2
+    inc $d021
+    jmp *-3
+    // Switch back to segment1 and add more code.
+    .segment MySegment1
+    inc $d020
+    jmp *-3
+
+Nel codice sopra è definito MySegment1 utilizzato i parametri predefiniti per un segmento. Mentre MySegment2 è definito impostando l'indirizzo iniziale per il blocco di memoria predefinito su $ 1000. Un elenco completo di parametri è riportato alla fine di questo capitolo.
+
+Si noti che è possibile tornare a un segmento in qualsiasi momento e continuare ad aggiungere codice al blocco di memoria corrente.
+
+A volte, è conveniente definire un blocco di memoria e passare ad esso con lo stesso comando. Questo viene fatto aggiungendo un blocco parametri ([...]) alla direttiva di segmento. 
+
+    // This:
+    .segment MySegment [start=$1000]
+
+    // È una notazione abbreviata per questo:
+    .segmentdef MySegment [start=$1000]
+    .segment MySegment
+
+Un segmento può essere definito solo una volta, quindi quanto sopra produrrà un errore dicendo che "MySegment" è doppiamente definito. 
+
+
+
+
+
+
+10.4. Dove è andato l'output?
+
+Se compili gli esempi di segmenti precedenti, scoprirai che non produce alcun output. Quindi dove è andato il codice? La risposta non è da nessuna parte: abbiamo definito i segmenti ma non ne abbiamo diretto il contenuto da nessuna parte. Tuttavia, possiamo ancora vedere il loro contenuto usando l'opzione -bytedump sulla riga di comando quando si esegue KickAsssembler. Ciò genererà il file 'ByteDump.txt' con i byte dei segmenti. L'esempio della sezione precedente è simile al seguente: 
+
+******************************* Segment: Default *******************************
+***************************** Segment: MySegment1 ******************************
+
+[Unnamed]
+4000: a2 1e      - ldx #30
+4002: ee 21 d0   - inc $d021
+4005: ca         - dex
+4006: d0 fa      - bne l1
+4008: ee 20 d0   - inc $d020
+400b: 4c 08 40   - jmp *-3
+
+***************************** Segment: MySegment2 ******************************
+[MySegment2]
+1000: ee 21 d0   - inc $d021
+1003: 4c 00 10   - jmp *-3
+
+Il modo più semplice per ottenere il codice in un file di programma è specificare un parametro 'outPrg': 
+
+        .segment Code [outPrg ="colors.prg"]
+
+        * = $1000
+        inc $d020
+        jmp * -3
+
+Se si utilizza il parametro 'outBin' invece verrà generato un file binario. Nel capitolo di output puoi vedere più opzioni per inviare segmenti a file o immagini di dischi. 
+
+
+
+
+
+
+10.5. Il segmento predefinito
+
+Se non si desidera utilizzare segmenti non è necessario. Se non si cambia segmento utilizzando la direttiva .segment, il codice viene inserito nel segmento 'Default' che è collegato al file di output standard. Nel dump dei byte nelle sezioni precedenti è possibile vedere che il segmento "Predefinito" è vuoto.
+
+Se si desidera restituire il segmento predefinito dopo aver aggiunto il codice a un altro segmento, scrivere semplicemente: 
+
+        .segment Default
+
+
+
+
+
+
+
+10.6. Denominazione di blocchi di memoria durante la commutazione del segmento
+
+Un uso dei segmenti consiste nel posizionare codice / dati collegati tra loro ma che dovrebbero trovarsi in punti diversi della memoria, vicini nel codice sorgente. Questo porta a uno stile di codifica in cui potresti voler nominare un nuovo blocco di codice ogni volta che cambi segmento. Puoi farlo aggiungendo una direttiva memblock subito dopo la direttiva sul segmento. Ma come comoda scorciatoia puoi semplicemente posizionare una stringa di testo dopo il cambio di segmento
+
+        // Questo
+        .segment Code "Il mio codice"
+
+        // È uguale a questo
+        .segment Code
+        .memblock "Il mio codice"
+
+Per dimostrare questo stile viene qui fornito un esempio più ampio. Alcune funzionalità sono descritte per la prima volta in seguito. : 
+
+.segmentdef Code [start=$0900]
+.segmentdef Data [start=$8000]
+.file [name="segments.prg", segments="Code,Data", modify="BasicUpstart", marg1=
+$0900]
+
+//--------------------------------------------------------
+// Main
+//--------------------------------------------------------
+          .segment Code "Main"
+           jsr colorSetup
+           jsr textSetup
+          rts
+//--------------------------------------------------------
+// Color
+//--------------------------------------------------------
+
+         .segment Code "Color Setup"
+colorSetup:
+            lda colors
+            sta $d020
+            lda colors+1
+            sta $d021
+            rts
+            .segment Data "Colors"
+colors: .byte LIGHT_GRAY, DARK_GRAY
+
+//--------------------------------------------------------
+// Text
+//--------------------------------------------------------
+
+     .segment Code "Text Setup"
+textSetup: {
+            ldx #0
+loop:   
+            lda text,x
+            cmp #$ff
+            beq out
+            sta $0400,x
+            inx
+            jmp loop
+out:
+            rts
+
+            .segment Data "Static Text"
+text:       .text: "hello world!"
+            .byte $ff
+}
+
+Ora otterrai una mappa di memoria come questa, quando usi l'opzione -showmem ': 
+
+Code-segment:
+$0900-$0906     Main
+$0907-$0913     Color Setup
+$0914-$0924     Text Setup
+
+Data-segment:
+$8000-$8001     Colors
+$8002-$800e     Static Text
+
+Il codice e i dati sono ora separati in memoria, ma vicini nel codice sorgente.
+
+Si noti che scoping e segmenti non si influenzano a vicenda, quindi è possibile cambiare i segmenti all'interno di un ambito. In quanto sopra viene utilizzato, quindi l'etichetta "testo" è locale. Può essere visto dal codice textSetup ma non da altre routine. Se si desidera avere una routine di scorrimento del testo, potrebbe avere una propria etichetta "testo" e non si scontrerebbero. 
+
+
+ 
+
+
+
+10.7. Il blocco di memoria predefinito
+
+Il codice inserito all'interno di un segmento viene aggiunto al blocco di memoria predefinito fino a quando un blocco non viene esplicitamente definito (da non confondere con il segmento "Predefinito"): 
+
+        .segment Code [start=$1000]
+        inc $d020       // Places code in the default memoryblock
+        jmp *-3
+        *=$2000
+        inc $d021
+        jmp *-3         / Start a new memoryblock
+
+Il blocco di memoria predefinito è speciale poiché può essere controllato da parametri forniti quando viene definito il segmento. Notare il parametro 'start = $ 1000' che imposta l'inizio del blocco di memoria predefinito.
+
+In alcuni casi si desidera che un segmento inizi uno dopo l'altro. Questo viene fatto con il parametro 'startAfter'. 
+
+        .segmentdef Code [start=$1000]
+        .segmentdef Data [startAfter="Code"]
+
+La possibilità di controllare il codice in questo modo può essere utile, ad esempio quando si desidera risparmiare memoria. Se si dispone di un codice di inizializzazione, che viene utilizzato solo una volta nella fase di avvio, è possibile posizionarlo dopo il resto del codice e utilizzare la stessa memoria per un buffer utilizzato dopo la fase di inizializzazione: 
+
+        .file [name="program.prg", segments="Code, InitCode"]
+
+        .segmentdef Code        [start=$1000]
+        .segmentdef InitCode    [startAfter="Code"]
+        .segmentdef Buffer      [startAfter="Code"]
+
+
+
+        .segment Buffer
+table1: .fill $100, 0
+table2: .fill $100, 0
+
+Si noti che il codice sovrapposto genera un errore solo se si trova all'interno dello stesso segmento. Quindi puoi inserire il codice in "InitCode" e "Buffer" senza ottenere errori. I segmenti Code e InitCode vengono salvati nel file mentre il buffer viene eliminato.
+
+Usando il parametro 'align' insieme a 'startAfter' si allinea il blocco di memoria predefinito. 
+
+        .segmentdef Code[start=$8000]
+        .segmentdef Virtual100 [startAfter= "Code", align=$100, virtual]
+
+        .segment Code "Some code"
+        ldx #$ff
+        lda table,x
+
+        .segment Virtual100 "Table"
+table: .fill $100,0
+
+Dalla mappa di memoria stampata durante l'assemblaggio, si vede che l'inizio del segmento Virtual100 è allineato a un limite di $ 100 per evitare di spendere un ciclo extra quando si accede alla tabella:
+
+Code-segment:
+ $8000-$8004 Some code
+
+Virtual100-segment:
+ *$8100-$81ff Table
+
+Nell'esempio sopra è stato usato anche 'virtual' (quando non è presente '=' la sua scorciatoia per 'virtual = true') per dichiarare virtuali tutti i blocchi di memoria nel segmento virtual100. Nella maggior parte dei casi ciò non sarà necessario poiché non si dirige il segmento da nessuna parte, quindi i byte generati vengono eliminati, ma in alcuni casi può tornare utile.
+
+'segmentAfter' funziona prendendo l'ultimo blocco di memoria definito (predefinito o definito dall'utente * =) e inizia dove finisce. I blocchi inclusi in altri modi (importati da altri segmenti, inclusi da file ecc.) Non vengono considerati.
+ 
+
+
+
+
+
+10.8. Compresi altri segmenti
+
+È possibile includere i blocchi di memoria di altri segmenti in un segmento usando il parametro 'segmenti' quando si definisce il segmento: 
+
+.segmentdef Upstart  [start=$0801]
+.segmentdef Code     [start=$1000]
+.segmentdef Data     [start=$3000]
+.segmentdef Combi1   [segments="Code, Data"]
+.segmentdef Combi2   [segments="Code, Data, Upstart"]
+
+Un segmento può essere incluso in più altri segmenti, come mostrato dal segmento "Codice" e "Dati" nell'esempio precedente.
+
+Questo può essere combinato liberamente con l'aggiunta di codice da altre fonti o usando direttamente i comandi (lda, sta) all'interno del segmento. 
+
+
+
+
+
+
+
+
+10.9. Compresi i file .prg
+
+Un file prg contiene un indirizzo iniziale (i primi due byte) e alcuni dati. I file prg possono essere importati come blocchi di memoria usando il parametro prgFiles quando si definisce il segmento: 
+
+        // Importing prg files when defining segment
+        .segmentdef Misc1 [prgFiles="data/Music.prg, data/Charset2x2.prg"]
+
+        // Another way of producing the same result
+        .segment Misc2 []
+        *=$1000 // Here we have to place the block manually
+        .import c64 "data/Music.prg"
+        *=$2000 // Here we have to place the block manually
+        .import c64 "data/Charset2x2.prg"
+
+Ancora una volta, questo può essere liberamente combinato con altri modi per aggiungere blocchi al segmento. 
+
+
+
+
+
+
+
+
+
+10.10. Compresi i file sid
+
+I file musicali Sid vengono importati come blocchi di memoria usando il parametro 'sidFiles'. Ecco un esempio che suona una melodia laterale: 
+
+        .segment Main [sidFiles="data/music.sid", outPrg="out.prg"]
+        BasicUpstart2(start)
+start:  sei
+        lda #00
+        tax
+        tay
+        jsr $1000
+loop:   lda #$f0
+        cmp$ d012
+        bne loop
+        inc $d020
+        jsr $1003
+        dec $d020
+        jmp loop
+
+
+
+
+
+
+10.11. confini
+
+È possibile impostare un indirizzo minimo e massimo del segmento utilizzando i parametri 'min' e 'max'. Se un blocco esce dai limiti indicati, genererà un errore: 
+
+        .segment Data [start=$c000, min=$c000, max=$cfff]
+
+        .fill $1800, 0      // Error since range is $c000-$d7ff
+
+In alcuni casi è utile assicurarsi che un segmento abbia un sito specifico. Impostando il parametro 'fill' su true tutti i valori non utilizzati nell'intervallo min-max sono impostati sul byte di riempimento: 
+
+        // Questo genererà $1000: 0,0,1,2,3,0,0,0
+        .segment Data [min=$1000, max=$1008, fill]
+        *=$1002
+        .byte 1,2,3  
+
+Nell'esempio sopra il byte di riempimento è zero, ma può essere specificato con il parametro 'fillByte'.
+
+La limitazione della dimensione può essere utilizzata per evitare di utilizzare l'area ROM o semplicemente applicare le regole di una dimensione massima di 256 o 128 byte.
+
+La seguente voce è stata sottoposta al concorso di font a 128 byte su CSDb di Jesper Balman Gravgaard (Rex). Ruota il carattere ROM di 90 gradi. La dimensione massima di 128 byte include i due byte di indirizzo del file prg. 
+
+// Carattere ROM ruotato di 90 gradi in 69 byte di codice
+.segment Main [min = $ 0801, max = $ 0880-2, outPrg = "out.prg"]
+
+.label SCREEN = $400
+.label CHARGEN = $d000
+.label CHARSET = $3000
+
+        *=$0801 "Basic"
+        BasicUpstart(ch2)
+
+        *=$080d "Program"
+ch4:        dey              // Wait for 8 char lines
+            bne ch
+            lda pix+1        // Next char
+            clc
+            adc #8
+            sta pix+1
+ch2:        sei              // Start char
+            lda #$32
+            sta $1
+            ldy #8
+ch:ldaCHARGEN // Start char line
+            ldx#7
+npi:        asl// Start pixel
+pix:        rolCHARSET,x
+            dex
+            bpl npi
+            inc ch+1          // Next char line
+            bne ch4
+            inc pix+2        // Inc both high bytes
+            inc ch+2
+            bne ch4          // Run until CHARGEN is $0000
+ee:        
+            lda #$37
+            sta $1
+            cli
+            lda #SCREEN/$40|CHARSET/$400
+            sta $d018
+            rts
+
+
+
+
+
+
+10.12. Blocco di memoria sovrapposto
+
+Quando vengono assemblati tutti i blocchi di un segmento, vengono rilevate eventuali sovrapposizioni. Normalmente le sovrapposizioni generano un errore, ma è possibile consentire la sovrapposizione con il parametro 'allowOverlap'. Ciò è utile se si desidera patchare i file. Ecco un esempio in cui al file "base.prg" vengono applicate due modifiche e salvate nel file "patched.prg": 
+
+        // Setup
+        .file [name="patched.prg", segments="Base,Patch", allowOverlap]
+        segmentdef Base [prgFiles="data/base.prg"]
+        .segmentdef Patch []
+
+        // Patch Code
+        .segment Patch
+        *=$3802 "Insert jmp"
+        jmp $3fe0
+
+        *=$38c2 "Insert lda #$ff"
+        lda #$ff
+
+La mappa di memoria è simile alla seguente:
+
+Base-segment:
+ $3800-$39ff base.prg
+
+Patch-segment:
+ $3802-$3804 Insert jmp
+ $38c2-$38c3 Insert lda #$ff
+
+Nell'esempio sopra abbiamo un segmento di base con il file originale e un segmento di patch con le modifiche. Sono combinati nel segmento intermedio generato dalla direttiva file che ha il parametro allowOverlap impostato.
+
+I blocchi sovrapposti vengono tagliati in modo da restituire il byte dal blocco con la priorità più alta. Gli ultimi blocchi aggiunti vincono quindi, poiché il segmento 'Patch' si trova dopo 'Base' nell'elenco dei segmenti, viene scelto il codice patch. 
+
+
+
+
+
+
+
+10.13. Modificatori di segmento
+
+Il blocco di memoria di un segmento può essere modificato prima che venga passato ai suoi utenti. Un modificatore di segmento prende un elenco di blocchi di memoria come input e genera un elenco modificato di blocchi di memoria.
+
+Il modificatore compilato 'BasicUpstart' aggiunge un blocco di memoria in $ 0801 con un programma upstart di base che passa a un determinato indirizzo: 
+
+        .file [name="test.prg", segments="Code"]
+        .segment Code [start=$8000, modify="BasicUpstart", _start=$8000]
+        inc $d020
+        jmp *-3
+
+Il parametro 'modify' assegna il modificatore 'BasicUpstart'. Come convenzione, gli argomenti al modificatore hanno un _ in primo piano, quindi '_start' è un argomento per il modificatore BasicUpstart.
+
+Gli utenti possono scrivere i propri modificatori come plug-in (Cruncher ecc.) Come mostrato nel capitolo sui plug-in.
+
+Ecco un elenco di modificatori di segmenti integrati:
+
+Name                    Parameters             Description
+BasicUpstart             _start                 Aggiunge un blocco di memoria con un programma di avvio di base che punta al dato indirizzo iniziale.
+
+
+
+
+
+
+
+
+
+
+Quando i segmenti vengono utilizzati in direttive diverse dalla direttiva .segment e .segmentdef, spesso viene eseguita utilizzando un segmento intermedio. I blocchi di memoria vengono trasmessi attraverso un segmento creato implicito che offre molte funzionalità spiegate in questo capitolo semplicemente usando gli stessi parametri.
+
+Ad esempio, ciò significa che è possibile utilizzare la direttiva file in questo modo: 
+
+.file [name="myfile.prg", segments="Code,Data", sidFiles="music.sid"]
+
+L'unico parametro speciale per la direttiva file è 'nome'. Il resto sono parametri standard per le direttive che utilizzano segmenti intermedi. Per un elenco completo dei parametri intermedi consultare la sezione "Elenco dei parametri del segmento" collocata per ultima in questo capitolo. 
+
+
+
+
+
+
+
+
+10.15. La direttiva .segmentout
+
+La direttiva .segmentout inserisce i byte di un segmento intermedio nel blocco di memoria corrente. Questo può essere usato per riallocare codice o dati come con la direttiva .pseudopc. È anche utile per la trasmissione di dati in formati alternativi, come mostrato nella sezione "esempi rapidi".
+
+Ecco un esempio che esegue del codice in zeropage:
+
+// Main code
+BasicUpstart2(start)
+
+start:      sei
+            ldx #0
+loop:       lda zpCode,x
+            sta zpStart,x
+            inx
+            cpx #zpCodeSize
+            bne loop
+            jmp zpStart
+
+
+
+
+zpCode:     .segmentout [segments="ZeroPage_Code"]
+            .label zpCodeSize = *-zpCode
+
+//           Zeropage code
+             .segment ZeroPage_Code [start=$10]
+zpStart:
+             inc $d020
+             jmp *-3
+
+Nella mappa della memoria, ora puoi vedere il codice zeropage:
+
+Memory Map
+----------
+
+Default-segment:
+ $0801-$080c Basic
+ $080e-$0824 Basic End
+
+ZeroPage_Code-segment:
+ $0010-$0015 ZeroPage_Code
+
+Poiché i byte sono forniti attraverso un segmento intermedio, è possibile utilizzare tutti i parametri intermedi. Nel seguente esempio, un file sid viene inserito in un indirizzo alternativo: 
+
+        *=$8000 "Music Data"
+        .segmentout [sidFiles="data/music.sid"]
+
+
+
+
+
+
+
+10.16. Dati del debugger
+
+È possibile contrassegnare i segmenti con una destinazione utilizzando il parametro 'dest'. Una destinazione potrebbe essere 'DISKDRIVE', 'BANK1', 'BANK2' ecc. Il parametro non cambia nulla, ma viene passato ai debugger che possono utilizzare il valore per organizzare i dati di debug. Ad esempio, le etichette definite in un segmento la cui destinazione è l'unità disco, non devono essere mescolate con il codice che si trova nel computer. Il parametro viene utilizzato in questo modo: 
+
+.segmentdef [dest="DISKDRIVE"]
+
+Il significato di ciascun nome di destinazione è definito dal debugger. 
+
+
+
+
+
+
+
+
+10.17. Elenco dei parametri del segmento
+
+Tabella 10.2 Parametri del segmento
+
+Intermediate   Parameter        Example              Description
+
+       align	        align=$100 	               Allinea il blocco di memoria predefinito a una determinata dimensione di pagina. Usato insieme a 'startAfter'
+
+X 	   allowOverlap 	allowOverlap 	           Consente la sovrapposizione di blocchi di memoria
+
+  	   dest 	        dest="1541" 	           Imposta la destinazione del segmento. (Queste sono informazioni per programmi esterni come C64debugger)
+
+X 	   fill 	        fill                       Riempie i byte non utilizzati tra min e max con il byte di riempimento
+
+X 	   fillByte 	    fillByte=$88 	           Imposta il valore del byte di riempimento. Se non specificato, sarà zero.
+
+X 	   hide 	        hide 	                   Nasconde i segmenti nei dump della memoria.
+
+X 	   marg1,marg2,..   marg1=$1000,               Argomenti per un modificatore.
+       ..,marg 5        marg2="ciao
+
+X 	   max 	            max=$CFFF 	               Imposta l'indirizzo massimo del segmento.
+ 
+X 	   min 	            min=$C000 	               Imposta l'indirizzo minimo del segmento.
+
+X 	   modify 	        modify="BasicUpstart" 	   Assegna un modificatore al segmento.
+
+
+  	   outBin 	        outBin="myfile.bin" 	   Emette un file bin con il contenuto del segmento.
+  
+  	   outPrg 	        outPrg="myfile.prg" 	   Emette un file prg con il contenuto del segmento.
+
+X 	   prgFiles 	    prgFiles="data music.prg,  Include i file di programma come blocchi di memoria.
+                        ,data/charset2x2.prg"
+
+X 	   segments 	    segments="Codice, dati"    Include blocchi di memoria di altri segmenti.
+
+X 	   sidFiles 	    sidFile ="music.sid"       Includi i dati di un file sid come blocco di memoria.
+
+       start 	        start=$1000 	           Imposta l'inizio del blocco di memoria predefinito sull'espressione data
+
+  	   startAfter 	    startAfter = "Codice"      Fa iniziare il blocco di memoria predefinito dopo il segmento dato.
+
+  	    virtual 	    virtual 	               Rende virtuali tutti i blocchi di memoria nel segmento.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
