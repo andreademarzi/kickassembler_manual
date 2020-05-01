@@ -1,0 +1,194 @@
+Capitolo 8. Preprocessore
+
+Prima che il contenuto del file sorgente sia passato al parser principale, passa attraverso il preprocessore. Il preprocessore non sa nulla di mnemonica o del linguaggio di script. È un semplice meccanismo che consente di selezionare parti della sorgente da scartare o includere in ciò che vede il parser principale. Questo capitolo spiega come. (NOTA: il preprocessore è realizzato come quello usato in C # con l'aggiunta di #import, #importif e #importonce, quindi potresti trovarlo familiare)
+8.1. Definizione dei simboli del preprocessore
+
+Il preprocessore utilizza simboli per determinare se deve scartare o includere parti del file di origine. Esistono due metodi per definire un simbolo. Il primo proviene dalla riga di comando. Questo definisce un simbolo chiamato 'TEST':
+
+java -jar KickAss.jar -define TEST
+
+Un simbolo è definito o non definito. Non ha alcun valore assegnato.
+
+L'altro modo è usare la direttiva #define:
+
+#define TEST
+
+È possibile riconoscere una direttiva preprocessore su "#". Se il primo carattere non bianco su una linea è un '#', allora la linea è una chiamata al preprocessore. Se si desidera rimuovere la definizione di un simbolo, utilizzare la direttiva #undef. 
+
+#undef TEST
+
+
+
+
+8.2. Decidere cosa viene incluso
+
+L'inclusione o l'eliminazione di parti di un file di origine viene eseguita utilizzando le direttive #if, proprio come nel linguaggio di script. 
+
+// Simple if block
+#if TEST
+    inc $d020
+#endif     // <- Use an endif to close this if block
+// You can also use else
+#if A
+    .print "A is defined"
+#else
+    .print "A is not defined"
+#endif
+
+Dal momento che la fonte non viene passata al parser principale, puoi scrivere qualsiasi cosa all'interno di un non token se e verrà comunque compilata. 
+
+#undef UNDEFINED_SYMBOL
+#if UNDEFINED_SYMBOL
+ Qui possiamo scrivere qualsiasi cosa poiché non sarà mai vista dal parser principale ... 
+#endif
+
+#elif è la combinazione di #else e #if. Può essere usato in questo modo: 
+
+#if X
+    .print "X"
+#elif Y
+    .print "Y"
+#elif Z
+    .print "Z"
+#else
+    .print "Not X, Y and Z"
+#endif
+
+I blocchi #if possono essere nidificati:
+
+#if A
+    #if B
+        .print "A and B"
+    #endif
+#else
+    #if X
+        .print "not A and X"
+    #elif Y
+        .print "not A and Y"
+    #endif
+#endif
+
+rientri non cambiano nulla, è solo per rendere il codice più facile da leggere. 
+
+
+
+8.3. Importare file
+
+Per includere un altro file sorgente nel codice, utilizzare la direttiva #import. Puoi anche effettuare un'importazione condizionale con la direttiva #importif. 
+
+#import "MyLibrary.asm"
+
+#importif STAND_ALONE "UpstartCode.asm" //<- Only imported if STAND_ALONE is
+defined
+
+Per assicurarsi che un file (ad es. Una libreria) venga importato una sola volta, inserire un #importonce all'interno del file importato 
+
+File1.asm:
+#importonce
+.print "This will only be printed once!"
+
+File2.asm:
+#import "File1.asm" // This will import File1
+#import "File1.asm" // This will not import anything
+
+
+
+
+8.4. Elenco delle direttive del preprocessore
+
+Tutte le direttive sul preprocessore sono visualizzate qui:
+
+
+Tabella 8.1 Direttive del preprocessore
+
+Direttiva 	                     Descrizione
+
+#define NAME 	                 Definisce un simbolo del preprocessore in base al nome specificato.
+
+#undef NAME 	                 Rimuove la definizione del simbolo del nome specificato, se presente.
+
+#import "filename" 	             Importa un file nel punto indicato nella fonte.
+
+#importif EXPR "filename" 	     Importa un file se una determinata espressione restituisce true.
+
+#importonce 	                 Verifica che il file corrente sia importato una sola volta.
+
+#if EXPR 	                     Elimina la seguente fonte se l'espressione data viene valutata come falsa.
+
+#endif 	                         Termina un blocco #if o #else.
+
+#else	                         Crea un altro blocco.
+
+#elif EXPR 	                     La combinazione di una direttiva #else e una #ifB ????????????????????
+
+
+
+
+
+
+8.5. Operatori booleani
+
+Un simbolo funziona come un booleano. O è definito o no. Le direttive #if, #elif e #importif prendono un'espressione che contiene simboli e operatori e restituisce true o false. Ecco alcuni esempi: 
+
+#if !DEBUG && !COMPLICATED
+  // some stuff
+#endif
+
+#if DEBUG || (X && Y && Z) || X==DEBUG
+  // Note that you can also use parenthesis#
+
+#importif DEBUG&&STANDALONE "UpstartWithDebug.asm"
+
+Ecco un elenco di operatori:
+
+Tabella 8.2 Operatori preprocessore
+Operatore 	        Descrizione
+
+! 	                Nega l'espressione
+
+&& 	                Logico e-nd.
+
+|| 	                Logico o-r.
+
+== 	                Restituisce vero se gli operandi sono uguali.
+
+! = 	            Restituisce vero se gli operandi non sono uguali.
+
+() 	                Le parentesi possono essere utilizzate per controllare l'ordine di valutazione
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
