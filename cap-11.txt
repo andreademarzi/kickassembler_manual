@@ -1,0 +1,242 @@
+Capitolo 11. File PRG e dischi D64
+11.1. introduzione
+
+Questo capitolo spiega come creare file prg-file e immagini del disco d64 usando la direttiva .file e .disk.
+
+La direttiva .file è abbastanza semplice, ma aggiunge alcune opzioni extra rispetto al parametro outPrg per i segmenti.
+
+Con la direttiva .disk puoi usare Kick Assembler come strumento di creazione del disco autonomo, selezionando i file dal disco rigido da aggiungere a un'immagine del disco, oppure puoi assemblare direttamente sul disco usando i segmenti, oppure puoi mescolare i due metodi. La direttiva raccoglie i parametri e li invia a un writer di disco che può essere sia il writer del disco build o quello fornito da un plug-in. Il writer predefinito build si basa sullo strumento disco "CC1541" di Andreas Larsson e dovrebbe coprire tutto necessità durante la creazione di dischi standard. Con scrittori specializzati di plugin puoi scrivere dischi per caricatori specifici ecc.
+
+Un grande ringraziamento ad Andreas per aver riscritto CC1541 su Java per l'utilizzo in Kick Assembler!
+
+
+
+
+
+11.2. Mappe parametri
+
+Le direttive .file e .disk usano le mappe dei parametri per descriverne i parametri. Queste sono parentesi quadre con parametri separati da virgola:
+
+[name="Bob", età=27, useGlasses=false, wearsTshirt]
+
+È possibile assegnare qualsiasi tipo di valore (stringhe, numeri, valori booleani, ecc.) A un parametro. Si noti che l'ultimo parametro non ha assegnazioni. Questa è una breve notazione per assegnare il valore booleano 'true' al parametro ('wearsTshirt = true'). 
+
+
+
+
+
+
+11.3. La direttiva sui file
+
+La direttiva sui file viene utilizzata in questo modo:
+
+
+
+
+
+
+        // Save a prg file containing the code segment
+        .file [name="MyFile.prg", segments="Code"]
+
+        // Save a bin file containing the code and data segment
+        .file [name="MyFile.bin", type="bin", segments="Code,Data"]
+
+        // Save one file for each memoryblock in the DATA segment
+        // ('Data_Sinus.prg' and 'Data_Mul3.prg' are created)
+        .file [name="Data.prg", mbfiles, segments="Data"]
+
+
+        // Define some segments
+        .segment Code []
+        BasicUpstart2(start)
+start:   inc $d020
+        jmp *-3
+
+        .segment Data []
+        *=$0f00 "Mul3"
+        .fill $40, i*3
+        *=$2000 "Sinus"
+        .fill $100, 127.5 + 127.5*sin(toRadians(i*360/256))
+
+
+
+
+Il contenuto del file viene fornito utilizzando un segmento intermedio che lo rende abbastanza flessibile. Vedere il capitolo del segmento per tutte le opzioni o le sezioni della direttiva del disco per ulteriori esempi.
+
+Il parametro name è obbligatorio, il resto è facoltativo. Ecco l'elenco dei parametri specifici della direttiva .file: 
+
+
+
+
+
+Tabella 11.1 Parametri direttiva file
+ 
+Parametro 	    Predefinito       	Esempio     	   Descrizione
+
+mbfiles 	     false 	            mbfiles 	            Se impostato su true, viene creato un file per ciascun blocco di memoria.
+
+name 	  	                        name="MyFile.prg" 	    Il nome del file.
+
+genere           "Prg" 	            typ="bin" 	            Imposta il tipo di file. I tipi validi sono "prg" e "bin"
+
+
+
+
+
+
+
+11.4. La direttiva sui dischi
+
+Le direttive del disco hanno il seguente formato:
+
+.disk OPT_WRITERNAME [... DISK PARAMETERS ..] {
+    [..FILE1 PARAMETERS ..],
+    [..FILE2 PARAMETERS ..],
+    [..FILE3 PARAMETERS ..],
+    ....
+}
+
+Il nome del writer è facoltativo, se lasciato vuoto viene chiamato il writer del disco predefinito. In caso contrario, il nome del writer viene utilizzato per cercare un writer di dischi di terze parti importato da un plug-in. Nelle sezioni seguenti viene descritto come funziona il writer predefinito
+
+
+
+
+
+11.5. Parametri del disco
+
+Il disco più semplice che puoi creare è solo dando il nome file dell'immagine del disco. Il resto dei parametri viene quindi compilato dai valori predefiniti:
+
+disk [filename="MyDisk.d64"]
+{
+}
+
+Inserisci i parametri extra come un elenco separato da virgole. Qui aggiungiamo un nome disco e un ID, che viene visualizzato nella parte superiore della directory: 
+
+.disk [filename="MyDisk.d64", name="THE DISK", id="2021!" ]
+{
+}
+
+Il completo dei possibili parametri per il disco è:
+
+Parametro 	               Predefinito 	         Esempio                                Descrizione
+dontSplitFilesOverDir   false 	         dontSplitFilesOverDir     Se impostato su true, il file che altrimenti avrebbe settori su entrambi  i lati
+                                                                   della traccia della directory verrà spostato dopo la traccia della directory.
+
+filenme                  	             filename="MyDisk.d64"     Il nome dell'immagine del disco
+
+format 	                 "commodore" 	 format = "Commodore" 	   Imposta il formato del disco. Le opzioni sono:"commodore",
+                                                                   "speeddos","dolphindos"
+
+id 	                     "2A" 	         id= 2021!"         	   L'ID disco
+
+interleave               10 	         interleave=10 	           Imposta il valore interleave predefinito per il disco
+
+name 	                 "UNAMED" 	     name="THE DISK!"          Il nome del disco
+
+showInfo 	              false 	     showInfo 	               Stampa le informazioni sul disco generato dopo la creazione. (Inizia traccia, 
+                                                                   settore ecc.)
+
+storeFilesInDir 	      false 	     storeFilesInDir           Se impostato su true, i file possono essere archiviati nei settori della  
+                                                                   traccia della directory non utilizzati dalla directory stessa.
+
+
+
+
+11.6. Parametri del file
+
+Ora prendiamo alcuni file da diverse fonti sul disco:
+
+.disk [filename="MyDisk.d64", name="THE DISK", id="2021!" ]
+{
+            [name="----------------", type="rel"                           ],
+            [name="BORDER COLORS", type="prg", segments="BORDER_COLORS"    ],
+            [name="BACK COLORS", type="prg<", segments="BACK_COLORS"       ],
+            [name="HIDDEN", type="prg", hide, segments="HIDDEN"            ],
+            [name="----------------", type="rel"                           ],
+            [name="MUSIC FROM PRG ", type="prg", prgFiles="data/music.prg" ],
+            [name="MUSIC FROM SID ", type="prg", sidFiles="data/music.sid" ],
+            [name="----------------", type="rel"],
+}
+
+            .segment BORDER_COLORS []
+            BasicUpstart2(start1)
+start1:     inc $d020
+            jmp *-3
+
+            .segment BACK_COLORS []
+            BasicUpstart2(start2)
+start2:     dec $d021
+            jmp *-3
+
+            .segment HIDDEN []
+            .text "THIS IS THE HIDDEN MESSAGE!"
+
+Il contenuto di un file viene eseguito utilizzando un segmento intermedio, che offre un'ampia gamma di possibilità di specificare l'input. Nell'esempio, il contenuto dei primi tre file prg proviene dai segmenti specificati di seguito. Il terzo utilizza un file prg dal disco rigido e il quarto il contenuto di un file sid. Per tutte le possibilità di lavorare con segmenti intermedi, consultare il capitolo Segmenti.
+
+I parametri 'name' e 'type' specificano il nome e il tipo del file. Notare '<' alla fine del secondo tipo di prg, il che significa che il file è bloccato.
+
+Il terzo file prg non viene mostrato nella directory a causa dell'opzione 'nascondi'. È possibile ottenere la traccia e il settore iniziale utilizzando il parametro del disco 'showInfo'.
+
+Un elenco completo di parametri è riportato qui.
+
+
+
+
+
+
+
+Tabella 11.3 Parametri generali del file
+
+parametri 	   Predefinito          	   Esempio 	         Descrizione
+
+hide	        false                hide 	               Se impostato su true, il file non verrà mostrato nella directory.
+
+interleave 	    The disks default    interleave 10 	       Imposta l'interleave del file.
+ 
+name 	        "" 	                 name="NOTA" 	       Il nome del file
+
+type 	        "Prg" 	             type="prg<" 	       Il tipo di file. I tipi disponibili sono: "del", "seq", "prg", "usr", "rel". È possibile 
+                                                           aggiungere un "<"   alla fine del tipo per contrassegnarlo come bloccato.
+
+
+
+
+
+
+
+11.7. Disk Writer personalizzati
+
+Un writer di dischi personalizzato è scritto in un plug-in. Fare riferimento a "Plugin Java di terze parti" se si desidera implementarne uno da soli.
+
+Si chiama così:
+
+.plugin "myplugins.Mydiskwriter"
+
+.disk MyDiskWriter [.. disk params ...] 
+{
+        [..file params .., segmenti="Codice, Dati"],
+        [..file params .., prgFiles="data / music.prg"],
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
