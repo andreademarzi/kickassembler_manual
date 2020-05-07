@@ -1,0 +1,383 @@
+Capitolo 12. Importazione ed esportazione
+
+In questo capitolo vedremo altri modi per ottenere dati dentro e fuori da Kick Assembler.
+12.1. Passare argomenti della riga di comando allo script
+
+Dalla riga di comando è possibile assegnare valori di stringa alle variabili, che possono essere lette dallo script. Questo viene fatto con la notazione ':' in questo modo:
+
+java–jar KickAss.jar mySource.asm: x=27: sound=true: title="Beta 2"
+
+Le tre variabili x, sound e beta2 e i loro valori di stringa verranno ora inseriti in una tabella hash a cui è possibile accedere dalla variabile globale cmdLineVars:
+
+.print “version =” + cmdLineVars.get(“version”)
+.var x= cmdLineVars.get (“x”).asNumber ()
+.var y= 2*x
+.var sound = cmdLineVars.get("sound").asBoolean ()
+.if (sound) jsr $ 1000
+
+
+
+
+
+
+12.2. Importazione di file binari
+
+È possibile caricare qualsiasi file in una variabile. Questo viene fatto con la funzione LoadBinary. Per estrarre i byte del file dalla variabile si utilizza la funzione get. Puoi anche ottenere la dimensione del file con la funzione getSize. Ecco un esempio:
+
+// Load the file into the variable ’data’
+.var data = LoadBinary("myDataFile")
+
+// Dump the data to the memory
+myData: .fill data.getSize(), data.get(i)
+
+La funzione get estrae byte firmati come definiti da java, il che significa che il valore byte $ ff fornisce il numero -1. Questo non è un problema quando si scaricano byte in memoria, tuttavia se si desidera elaborare i dati è possibile che si desideri un byte senza segno. Per ottenere un byte senza segno, utilizzare invece la funzione uget. Il valore byte $ ff restituirà quindi 255.
+
+Quando conosci il formato del file, puoi fornire una stringa modello che descrive i blocchi di memoria. A ciascun blocco viene assegnato un nome e un indirizzo iniziale relativamente all'inizio del file. Quando si fornisce un modello alla funzione LoadBinary, il valore restituito conterrà una funzione get e size per ciascun blocco di memoria:
+
+.var dataTemplate = "Xcoord=0,Ycoord=$100, BounceData=$200"
+.var file = LoadBinary(“moveData”, dataTemplate)
+Xcoord:     .fill file.getXCoordSize(), file.getXCoord(i)
+Ycoord:     .fill file.getYCoordSize(), file.getYCoord(i)
+BounceData: .fill file.getBounceDataSize(), file.getBounceData(i)
+
+Ancora una volta, file.ugetXCoord (i) restituirà un byte senza segno.
+
+Esiste un tag modello speciale denominato 'C64FILE' che viene utilizzato per caricare file c64 nativi. Quando si trova nella stringa del modello, la funzione LoadBinary ignorerà i primi due byte del file, poiché i primi due byte di un file C64 vengono utilizzati per indicare al caricatore l'indirizzo iniziale del file. Ecco un esempio di come caricare e visualizzare un file di immagine di Koala Paint:
+
+.const KOALA_TEMPLATE = "C64FILE, Bitmap = $ 0000, ScreenRam = $ 1f40, ColorRam = $ 2328, BackgroundColor = $ 2710"
+.var picture = LoadBinary ("picture.prg", KOALA_TEMPLATE)
+
+        * = $ 0801 "Programma base"
+        BasicUpstart ($ 0810)
+
+        * = $ 0810 "Programma"
+        lda # $ 38
+        sta $ d018
+        lda # $ d8
+        sta $ d016
+        lda # $ 3 miliardi
+        sta $ d011
+        lda # 0
+        sta $ d020
+        lda # picture.getBackgroundColor ()
+        sta $ d021
+        ldx # 0
+!ciclo continuo:
+        .for (var i = 0; i <4; i ++) {
+           lda colorRam + i * $ 100, x
+           sta $ d800 + i * $ 100, x
+        }
+        INX
+        bne! loop-
+        jmp *
+
+* = $ 0C00; .fill picture.getScreenRamSize (), picture.getScreenRam (i)
+* = $ 1C00; colorRam: .fill picture.getColorRamSize (), picture.getColorRam (i)
+* = $ 2000; .fill picture.getBitmapSize (), picture.getBitmap (i)
+
+Notare quanto sia facile riallocare lo schermo e il colore ram combinando le direttive * = e .fill. Per evitare di digitare troppo spesso i tipi di formato, Kick Assembler ha delle costanti integrate che puoi usare:
+
+Tabella 12.1 Costanti del file binario
+
+Costante di formato binario                blocchi 	                                Descrizione
+
+BF_C64FILE 	  	                                                                         Un file C64 (I primi due byte vengono ignorati)
+
+BF_BITMAP_SINGLECOLOR                   ScreenRam, Bitmap 	                             Il formato monocolore Bitmap emesso da Timanthes.
+
+BF_KOALA 	                            Bitmap, ScreenRam, ColorRAM, BackgroundColor 	 File da Koala Paint
+
+BF_FLI 	                                ColorRAM, ScreenRam, Bitmap 	                 File dall'editor FLI di Blackmails.
+
+BF_DOODLE 	                            ColorRAM, Bitmap 	                             File da Doodle
+
+Quindi, se si desidera caricare un'immagine FLI, basta scrivere
+
+.var fliPicture = LoadBinary("GreatPicture", BF_FLI)
+
+I formati sono stati scelti in modo da coprire gli output di Timanthes (NB. Timanthes non salva il colore di sfondo nel formato koala, quindi se lo usi otterrai un errore di overflow).
+
+SUGGERIMENTO: se si desidera sapere come vengono posizionati i dati nei formati precedenti, è sufficiente stampare la costante sulla console durante il montaggio. Esempio:
+
+.print "Koala format="+BF_KOALA
+
+
+
+
+
+
+12.3. Importazione di file SID
+
+Il linguaggio di script conosce il formato dei file SID. Ciò significa che è possibile importare file direttamente dall'HVSC (High Voltage Sid Collection) che utilizza questo formato. Per fare ciò si utilizza la funzione LoadSid che restituisce un valore che rappresenta il file sid.
+
+.var music = LoadSid ("C: /c64/HVSC_44-all-of-them/C64Music/Tel_Jeroen/Closing_In.sid")
+
+Da questo puoi estrarre dati come l'indirizzo di init, l'indirizzo di riproduzione, le informazioni sulla musica e i dati del brano.
+
+Table 12.2. SIDFileValue Properties
+
+Attribute/Function                                    Description
+header                                           The sid file type (PSID or RSID)
+version                                          The header version
+location                                         The location of the song
+init                                             The address of the init routine
+play                                             The address of the play routine
+songs                                            The number of songs
+startSong                                        The default song
+name                                             A string containing the name of the module
+author                                           A string containing the name of the author
+copyright                                        A string containing copyright information
+speed                                            The speed flags (Consult the Sid format for details)
+flags                                            flags (Consult the Sid format for details)
+startpage                                        Startpage (Consult the Sid format for details)
+pagelength                                       Pagelength (Consult the Sid format for details)
+size                                             The data size in bytes
+getData(n)                                       Returns the n'th byte of the module. Use this function
+                                                 together with the size variable to store the modules bi-
+                                                 nary data into the memory.
+
+
+
+// ------------------------------------------------ ---------
+// ------------------------------------------------ ---------
+// SID Player
+// ------------------------------------------------ ---------
+// ------------------------------------------------ ---------
+        .var music = LoadSid ("Nightshift.sid")
+        BasicUpstart2 (inizio)
+inizio:
+        lda # $00
+        sta $d020
+        sta $d021
+        ldx #0
+        ldy #0
+        lda #music.startSong-1
+        jsr music.init
+        sei
+        lda #<irq1
+        sta $0314
+        lda #>irq1
+        sta $0315
+        asl $d019
+        lda #$ 7b
+        sta $dc0d
+        lda # 81
+        sta $d01a
+        lda #$ 1b
+        sta $d011
+        lda #$80
+        sta $d012
+        cli
+        jmp *
+// ------------------------------------------------ ---------
+IRQ1:
+        asl  d019
+        inc $d020
+        jsr music.play
+        dec $d020
+        pla
+        tay
+        pla
+        tax
+        pla
+        RTI
+// ------------------------------------------------ ---------
+        * = music.location "Musica"
+        .fill music.size, music.getData(i)
+
+// ------------------------------------------------ ----------
+// Stampa le informazioni sulla musica durante il montaggio
+.Stampa ""
+.print "Dati SID"
+.Stampa "--------"
+.print "location=$"+toHexString (music.location)
+.print "init=$"+toHexString (music.init)
+.print "play=$"+toHexString (music.play)
+.print "songs="+music.songs
+.print "startSong="+music.startSong
+.print "siz =$"+toHexString (music.size)
+.print "name="+music.name
+.print "author="+music.author
+.print "copyright="+music.copyright
+
+.Stampa ""
+.print "Dati tecnici aggiuntivi"
+.Stampa "--------------------"
+.print "heade="+music.header
+.print "header version="+music.version
+.print "flags="+toBinaryString (music.flags)
+.print "speed="+toBinaryString (music.speed)
+.print "startpage="+music.startpage
+.print "pagelength="+music.pagelength
+
+L'assemblaggio del codice sopra creerà un lettore musicale per il file sid dato e stamperà le informazioni nel file musicale durante l'assemblaggio:
+
+SID Data
+
+--------
+
+location=$1000
+init=$1d70
+play=$1003
+songs=1.0
+startSong=1.0
+size=$d78
+name=Nightshift
+author=Ari Yliaho (Agemixer)
+copyright=2001 Scallop
+
+Additional tech data
+--------------------
+header=PSID
+header version=2.0
+flags=100100
+speed=0
+startpage=0.0
+
+SUGGERIMENTO: se si utilizza l'opzione –libdir per puntare alla directory principale HVSC, non è necessario scrivere nomi di file lunghi. Per esempio:
+
+.var music = LoadSid("C:/c64/HVSC_44-all-of-them/C64Music/Tel_Jeroen/
+Closing_In.sid")
+
+sarà
+
+.var music = LoadSid("Tel_Jeroen/Closing_In.sid")
+
+
+
+
+
+
+
+
+
+12.4. Conversione di grafica
+
+Kick Assembler semplifica la conversione di grafica da file gif e jpg nei formati C64 di base. Un'immagine può essere caricata in un valore di immagine con la funzione LoadPicture. Il valore dell'immagine è quindi accessibile da varie funzioni a seconda del formato desiderato. Di seguito verrà inserito un logo a un solo colore in un set di caratteri standard a matrice di caratteri 32x8 posizionato a $ 2000.
+
+*=$2000
+.var logo = LoadPicture("CML_32x8.gif")
+.fill $800, logo.getSinglecolorByte((i>>3)&$1f, (i&7) | (i>>8)<<3)
+
+Se non ti piace la forma compatta del comando .fill puoi invece usare un ciclo for. Quanto segue produrrà gli stessi dati:
+
+*=$2000
+.var logo = LoadPicture("CML_32x8.gif")
+.for (var y=0; y<8; y++)
+   .for (var x=0;x<32; x++)
+      .for(var charPosY=0; charPosY<8; charPosY++)
+         .byte logo.getSinglecolorByte(x,charPosY+y*8)
+
+LoadPicture può accettare una tabella di colori come secondo argomento. Questo è usato per decidere quale modello di bit è prodotto da un pixel. Nella modalità monocolore ci sono due bit (% 0 e% 1) e la modalità multi colore ne ha quattro (% 00,% 01,% 10 e% 11). Se non si specifica una tabella dei colori, viene creata una tabella predefinita in base ai colori nella foto. Tuttavia, normalmente si desidera controllare quale colore è mappato su un modello di bit. Quanto segue mostra come convertire un'immagine in un set di caratteri a matrice di caratteri multi colore 16x16:
+
+*=$2800 “Logo”
+.var picture = LoadPicture("Picture_16x16.gif",
+                             List().add($444444, $6c6c6c,$959595,$000000))
+.fill $800, picture.getMulticolorByte(i>>7,i&$7f)
+
+I quattro colori aggiunti all'elenco sono i valori RGB per i colori che sono associati a ciascun modello di bit.
+
+Infine, il valore dell'immagine contiene una funzione getPixel da cui è possibile ottenere il colore RGB di un pixel. Ciò è utile quando si desidera creare il proprio formato per uno scopo speciale.
+
+Attributi e funzioni disponibili sui valori delle immagini:
+
+Tabella 12.3 Funzioni PictureValue
+
+
+width 	                    Restituisce la larghezza dell'immagine in pixel.
+
+height 	                    Restituisce l'altezza dell'immagine in pixel.
+
+getPixel (x,y)          	Restituisce il valore RGB del pixel nella posizione x, y. Sia x che y sono indicati in pixel.
+
+getSinglecolorByte (x,y) 	Converte 8 pixel in un singolo byte di colore utilizzando la tabella dei colori. X è dato come un numero di byte
+                            (= posizione pixel / 8)  e y è dato in pixel.
+
+getMulticolorByte (x,y) 	Converte 4 pixel in un byte multi colore utilizzando la tabella dei colori. X è dato come un numero di byte
+                            (= posizione pixel / 8) e y è dato in pixel. (NB. Questa funzione ignora ogni secondo pixel poiché
+                            il formato multi colore C64 è la metà della risoluzione del singolo colore.)
+
+12.5. Scrittura in file definiti dall'utente
+
+Con la funzione createFile è possibile creare / sovrascrivere un file sul disco. Lo chiami con un nome file e restituisce un valore che può essere utilizzato per scrivere dati nel file:
+
+.var myFile = createFile("breakpoints.txt")
+.eval myFile.writeln("Hello World")
+
+IMPORTANTE! Per motivi di sicurezza, dovrai usare l'opzione –afo sulla riga di comando, altrimenti la generazione del file verrà bloccata. Ad esempio "java –jar KickAss.jar source.asm -afo" farà il trucco.
+
+La creazione di file è utile per generare dati extra per gli emulatori. L'esempio seguente mostra come generare un file con breakpoint per VICE:
+
+.var brkFile = createFile("breakpoints.txt")
+
+.macro break() {
+    .eval brkFile.writeln(“break “ + toHexString(*))
+}
+
+*=$0801 “Basic”
+BasicUpstart(start)
+
+*=$1000 "Code"
+start:
+    inc $d020
+    break()
+    jmp start
+
+
+
+Quando si esegue VICE con il file breakpoint (utilizzare l'opzione –moncommands), VICE funzionerà fino all'interruzione e quindi uscirà sul monitor.
+
+Ecco un elenco delle funzioni su un valore di file:
+
+Tabella 12.4 Funzioni FileValue
+
+Attribute/Function                          Description
+
+Attribute/Function                           Description.
+
+writeln(text)                                Writes the ‘text’ to the file and insert a line shift.
+
+writeln()                                    Insert a line shift.
+
+
+
+
+
+12.6. Esportazione di etichette in altri file sorgente
+
+Usando l'opzione –symbolfile alla riga di comando è possibile esportare tutti i simboli assemblati. La linea
+
+java –jar KickAss.jar source1.asm –symbolfile
+
+genererà il file source1.sym durante il montaggio. Diciamo che il contenuto di source1 è:
+
+.filenamespace source1
+        *=$2000
+clearColor:
+        lda #0
+        sta $d020
+        sta $d021
+        rts
+
+Il contenuto di source1.sym sarà:
+
+.namespace source1 {
+        .label clearColor=$2000
+}
+
+Ora è possibile fare riferimento alle etichette di source1.asm da un altro file semplicemente importando il file .sym:
+
+.import source “source1.sym”
+jsr source1.clearColor
+
+
+
+
+
+
+12.7. Esportazione di etichette in VICE
+
+Utilizzando l'opzione –vicesymbols è possibile esportare le etichette in un file .vs che può essere letto dall'emulatore VICE. Per esempio:
+
+java –jar KickAss.jar source1.asm –vicesymbols
+
