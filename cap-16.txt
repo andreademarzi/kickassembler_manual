@@ -1,0 +1,80 @@
+Capitolo 16. Test
+
+Kick Assembler ha direttive .assert che sono utili per i test. Sono stati creati per semplificare il test dell'assemblatore stesso, ma è possibile utilizzarli per testare i propri pseudo-comandi, macro, funzioni. Quando vengono utilizzate le asserzioni, l'assemblatore conterà automaticamente il numero di asserzioni e il numero di asserzioni non riuscite e le visualizzerà al termine dell'assemblaggio.
+
+
+
+
+16.1. Affermare espressioni
+
+Con la direttiva assert puoi testare il valore delle espressioni. Sono necessari tre argomenti: una descrizione, un'espressione e un risultato previsto.
+
+
+.assert "2+5*10/2", 2+5*10/2, 27
+.assert "2+2", 2+2, 5
+.assert "Vector(1,2,3)+Vector(1,1,1)", Vector(1,2,3)+Vector(1,1,1), Vector(2,3,4)
+
+Durante l'assemblaggio di questo codice l'assemblatore stampa la descrizione, il risultato dell'espressione e il risultato previsto. Se questi non corrispondono, viene aggiunto un messaggio di errore:
+
+2+5*10/2=27.0 (27.0)
+2+2=4.0 (5.0) – ERROR IN ASSERTION!!!
+Vector(1,2,3)+Vector(1,1,1)=(2.0,3.0,4.0) ((2.0,3.0,4.0))
+
+
+
+
+16.2. Asserire errori nelle espressioni
+
+Per assicurarsi che un'espressione dia un errore quando l'utente fornisce parametri errati a una funzione, utilizzare la direttiva .asserterror:
+
+.asserterror "Test1" , 20/10
+.asserterror "Test2" , 20/false
+
+Nell'esempio sopra test1 fallirà poiché è perfettamente legale dividere 20 per 10. Test2 produrrà l'errore atteso, quindi questa affermazione è ok. Quanto sopra fornirà il seguente output:
+
+Test1 – ERROR IN ASSERTION!
+        Test2 – OK. | Can’t get a numeric representation from a value of type boolea
+
+
+
+
+
+
+
+16.3. Codice di asserzione
+
+La direttiva assert ha una seconda forma che consente di confrontare parti di codice assemblato:
+
+
+.assert "Test2", { lda $1000 }, {ldx $1000}
+.assert "Test", {
+        .for (var i=0; i<4; i++)
+            sta $0400+i
+}, {
+    sta $0400
+    sta $0401
+    sta $0402
+    sta $0403
+}
+
+La direttiva assert darà un messaggio ok o fallito e il risultato assemblato come output. L'output dell'esempio precedente è il seguente:
+
+Test1 – FAILED! | 2000:ad,00,10 -- 2000:ae,00,10
+Test2 – OK. | 2000:8d,00,04,8d,01,04,8d,02,04,8d,03,04
+
+
+
+
+
+
+16,4. Asserire errori nel codice
+
+Come la direttiva assert, anche la direttiva asserterror ha una forma che può affermare il codice:
+
+.asserterror “Test” , { lda #”This must fail”}
+
+Produzione:
+
+Test – OK. | The value of a Command Argument Value must be an integer. Can’t get an
+integer from a value of type ‘string’
+
