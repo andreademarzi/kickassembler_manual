@@ -1,0 +1,21 @@
+Capitolo 13. Modificatori
+
+Con i modificatori, è possibile modificare i byte assemblati prima che vengano archiviati nel file di destinazione. Potrebbe essere che desideri crittografare, comprimere o sgretolare i byte. Attualmente, l'unico modo per creare un modificatore è implementare un plugin java (vedere il capitolo plugin).
+13.1. Modifica le direttive
+
+È possibile modificare i byte assemblati di un blocco limitato o dell'intero file sorgente. Per modificare l'intero file sorgente utilizzare la direttiva .filemodify nella parte superiore del file. Quanto segue modifica l'intero file con il modificatore "MyModifier" chiamato con il parametro 25.
+
+.filemodify MyModifier(25)
+
+Per modificare un blocco limitato si utilizza la direttiva .modify:
+
+.modify MyModifier() {
+    *=$8080
+main:
+    inc $d020
+    dec $d021
+    jmp main
+    *=$1000
+    .fill $100, i
+}
+
