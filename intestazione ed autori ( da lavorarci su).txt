@@ -1,3 +1,4 @@
 Kick Assembler
 Reference Manual
 By Mads Nielsen
+Help translate Piero
