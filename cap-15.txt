@@ -1,0 +1,265 @@
+Capitolo 15. Assemblare le informazioni
+
+Kick Assembler 4, e versioni successive, espone informazioni sulle funzionalità integrate e sui file sorgente assemblati. Questo è destinato agli autori di redattori che desiderano fornire ulteriore supporto a Kick Assembler come errore in tempo reale e feedback sulla sintassi e testo di aiuto per la creazione di direttive e librerie. Queste funzionalità sono in fase di sviluppo e l'interfaccia potrebbe cambiare. Se prevedi di utilizzarlo, contatta l'autore in modo che possiamo coordinare i nostri sforzi.
+
+
+15.1. L'opzione AsmInfo
+
+Per ottenere informazioni sul riassemblaggio da Kick Assembler, usa l'opzione -asminfo
+
+java -jar KickAss.jar mysource.asm -asminfo all
+
+Quando si esegue l'istruzione precedente, l'output viene scritto nel file "asminfo.txt", ma è possibile specificare il file con l'opzione -asminfofile:
+
+java -jar KickAss.jar mysource.asm -asminfo all -asminfofile myAsmInfo.txt
+
+Il contenuto del file avrà sezioni diverse a seconda delle informazioni richieste. Il secondo parametro descrive quali informazioni vengono restituite, quindi nell'esempio sopra vengono restituite tutte le informazioni possibili. L'output diviso in sezioni, con diversi tipi di informazioni, ecco un esempio:
+
+[libraries]
+Math;constant;PI
+Math;constant;E
+Math;function;abs;1
+Math;function;acos;1
+...
+[directives]
+.text;.text "hello";Dumps text bytes to memory.
+.by;.by $01,$02,$03;An alias for '.byte'.
+...
+[files]
+0;KickAss.jar:/include/autoinclude.asm
+1;mySource.asm
+[syntax]
+symbolReference;38,8,38,17,0
+symbolReference;41,20,41,26,0
+functionCall;41,8,41,18,0
+symbolReference;56,8,56,17,0
+...
+[errors]
+...
+
+
+I dettagli delle sezioni saranno spiegati in seguito.
+
+Esistono due categorie di asmInfo: Informazioni predefinite, che contiene informazioni sulle funzionalità integrate nell'assemblatore come direttive e librerie. L'altra categoria principale sono le informazioni specifiche della fonte, come la sintassi della fonte o errori nella fonte. Puoi attivare una o più categorie o sezioni:
+
+Questo esporterà tutte le sezioni predefinite di informazioni sull'assemblaggio:
+
+java -jar KickAss.jar mysource.asm -asminfo allPredefined
+
+E questo esporterà tutte le sezioni predefinite di informazioni sull'assemblaggio ed eventuali errori:
+
+java -jar KickAss.jar mysource.asm -asminfo allPredefined|errors
+
+Notare il '|' viene utilizzato per fornire diverse selezioni: puoi aggiungerne quante ne desideri. Queste sono le opzioni disponibi
+
+
+Tabella 15.1 AsmInfo
+
+
+Nome 	                Categoria 	                Descrizione
+
+all 	                meta 	                    Esporta tutte le informazioni, sia predefinite che specifiche della fonte
+
+allPredefined 	        meta 	                    tutte le informazioni predefinite
+
+allSourceSpecific 	    meta 	                    Tutte le informazioni specifiche sulla fonte
+
+version 	            predefinito 	            La versione dell'assemblatore
+
+libraries 	            predefinito 	            Le librerie definite (funzioni e costanti)
+
+directives 	            predefinito 	            Le direttive definite
+
+preprocessorDirectives 	predefinito 	            Le direttive del preprocessore definite
+
+Files 	                sourceSpecific 	            I file coinvolti nell'assemblaggio
+
+syntax 	                sourceSpecific          	Informazioni sulla sintassi dei file indicati
+
+errors 	                sourceSpecific 	            Errori del montaggio
+
+
+Quando la categoria dice 'meta', l'opzione è usata per selezionare diverse sezioni. Quando la categoria non è "meta", l'opzione fa riferimento a una sezione specifica. I dettagli delle sezioni sono riportati nei capitoli successivi.
+
+
+
+
+
+
+
+15.2. Feedback in tempo reale da parte dell'assemblatore
+
+Per gli autori di editor Kick Assembler ha alcune caratteristiche speciali che ti consentono di ottenere informazioni sul file sorgente mentre l'utente lo sta modificando. Questo viene fatto chiamando Kick Assembler in luoghi strategici come, quando l'utente non ha digitato nulla per un determinato periodo di tempo.
+
+Innanzitutto, il contenuto di uno o più file di origine potrebbe non essere salvato. Per ottenere ciò, salva il contenuto in un file temporaneo e usa l'opzione replaceFile per sostituire il contenuto del file originale:
+
+java -jar KickAss.jar mysource.asm -replacefile c:\ka\mysource.asm c:\tmp
+\tmpSource.asm
+
+Questo sostituisce il contenuto del primo file con il secondo. Non importa se il file è il file principale o incluso da un altro filer e puoi avere tutte le opzioni di sostituzione file che desideri.
+
+In secondo luogo, non vuoi che Kick Assembler esegua un assemblaggio completo ogni volta che lo chiami. Il montaggio potrebbe richiedere troppo tempo e non si desidera che l'assemblatore sovrascriva l'output. Per occupartene, usa l'opzione -noeval.
+
+java -jar KickAss.jar mysource.asm -noeval ...
+
+Questo fa sì che Kick Assembler analizzi il file sorgente e faccia un passaggio iniziale, non verrà effettuata alcuna valutazione. Ciò rileverà errori di sintassi e restituirà informazioni sulla sintassi.
+
+
+
+
+
+
+
+15.3. Il formato del file AsmInfo
+
+I file di informazioni sull'assieme sono divisi in sezioni. Se il primo carattere di una riga è '[', segna una nuova sezione e il nome della sezione viene scritto tra parentesi quadre. Ogni riga è composta da uno o più campi separati da punto e virgola. Si noti che in casi speciali, l'ultimo campo potrebbe contenere un punto e virgola stesso (questo verrà annotato nelle sezioni interessate). Quindi il formato file di base è simile al seguente:
+
+[section1]
+field1;field2;field3
+field1;field2;field3
+field1;field2;field3
+[section2]
+field1;field2
+field1;field2
+field1;field2
+
+Come tipo speciale di campo, che viene utilizzato in diverse sezioni è un "intervallo di origine" che descrive un intervallo di caratteri in un file di origine. È composto da 5 numeri interi:
+
+startline, startposition, endline, endposition, fileindex
+
+Le posizioni sono le posizioni in una determinata riga. L'indice del file indica quale file è ed è un indice che punta a una voce nella sezione dei file. Un esempio di un intervallo di sorgenti è:
+
+38,8,38,17,1
+
+
+
+
+
+
+
+15.4. Le sezioni
+
+Qui, vengono spiegati i dettagli delle diverse sezioni nel file asminfo.
+15.4.1. Sezione versione
+
+Questa sezione contiene una riga singola con il numero di versione. Per esempio:
+
+[versione]
+5.12
+
+
+
+
+
+
+15.4.2. Sezione biblioteche
+
+Il formato della sezione librerie è:
+
+libraryname;entrytype;typedata
+
+Esistono due tipi di voci: "funzione" e "costante". I dati del tipo dipendono dal tipo di voce ed è:
+
+libraryname;constant;constantname
+libraryname;function;functionname;numberOfArguments
+
+Esempi:
+
+[libraries]
+Math;constant;PI
+Math;constant;E
+Math;function;abs;1
+Math;function;acos;1
+
+
+
+
+
+
+15.4.3. Sezione direttive
+
+Il formato della sezione direttive è:
+
+directive;example;description
+
+[ppdirectives]
+#define;#define DEBUG;Defines a preprocessor symbol.
+
+
+
+
+
+15.4.4. Sezione direttive preprocessore
+
+Il formato della sezione delle direttive del preprocessore è:
+
+directive;example;description
+
+Esempio:
+
+[ppdirectives]
+#define;#define DEBUG;Defines a preprocessor symbol.
+
+
+
+
+
+
+
+15.4.5. Sezione file
+
+La sezione dell'elenco dei file è un elenco dei file coinvolti. I campi sono:
+
+index;filepath
+
+Importante: il percorso del file potrebbe contenere punti e virgola!
+
+Un esempio di un elenco è:
+
+[files]
+0;KickAss.jar:/include/autoinclude.asm
+1;test1.asm
+
+Si noti che la prima voce inizia con KickAss.jar. Ciò significa che è un file incluso all'interno del file KickAss.jar.
+
+
+
+
+
+15.4.6. Sezione di sintassi
+
+La sezione della sintassi ha il formato:
+
+type;sourcerange
+
+Example:
+[syntax]
+operator;21,20,21,20,0
+
+Nota: è il piano per aggiungere più campi qui, ad esempio dove viene definita un'etichetta se è un riferimento di etichetta, ecc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+15.4.7. Sezione errori
+
+La sezione errori ha il formato:
+
+level;sourcerange;message
+
+Example:
+[errors]
+Error;41,2,41,7,1;Unknown preprocessor directive #defin
+
