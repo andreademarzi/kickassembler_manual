@@ -1,0 +1,245 @@
+Capitolo 14. Funzioni speciali
+
+Varie funzioni
+14.1. Nome e percorso del file sorgente
+
+È possibile ottenere il nome file e il percorso del file sorgente corrente con le funzioni getPath () e getFilename ():
+
+.print "Path : " + getPath()
+.print "Filename : " + getFilename()
+
+
+
+
+
+
+14.2. Programma di base per l'avvio
+
+Per far funzionare il codice macchina assemblato su un C64 o in un emulatore, è utile includere un piccolo programma di base che avvia il codice (ad esempio: 10 sys 4096). La macro BasicUpstart è una macro standard che ti aiuta a creare programmi del genere. Il seguente programma mostra come viene utilizzato:
+
+        *= $0801 "Basic Upstart"
+        BasicUpstart(start) // 10 sys$0810
+start:
+        *= $0810 "Program"
+        inc $d020
+        inc $d021
+        jmp start
+
+SUGGERIMENTO: inserire all'avvio del programma all'inizio del programma di base e utilizzare l'opzione –execute per avviare Vice. Questo caricherà ed eseguirà automaticamente il tuo programma in Vice dopo un corretto assemblaggio.
+
+Esiste una seconda variante della macro upstart di base che si occupa anche di impostare i blocchi di memoria:
+
+BasicUpstart2(start) // 10 sys$0810
+start: inc $d020
+       inc $d021
+       jmp start
+
+Se vuoi vedere il codice dello script per le macro, puoi cercare nel file autoinclude.asm nel file KickAss.jar.
+
+
+
+
+
+
+14.3. Costanti Opcode
+
+Quando si effettua un codice di modifica automatica o un codice che srotola il codice di velocità, è necessario conoscere il valore dei codici operativi coinvolti. Per facilitare questo, a tutti gli opcode è stata data la propria costante. La costante si trova scrivendo il mnemonico in maiuscolo e aggiungendo la modalità di indirizzamento. Ad esempio, la costante per un comando rts è RTS e 'lda # 0' è LDA_IMM. Quindi, per posizionare un comando rts sul target scrivi:
+
+        lda #RTS
+        sta target
+
+Ottieni le dimensioni di un mnemonico usando il comando asmCommandSize
+
+.var rtsSize = asmCommandSize(RTS)//rtsSize=1
+.var ldaSize1 = asmCommandSize(LDA_IMM) //ldaSize1=2
+.var ldaSize2 = asmCommandSize(LDA_ABS) //ldaSize2=3
+
+Ecco un elenco delle modalità di indirizzamento ed esempi costanti:
+
+Tabella 14.1 Modalità di indirizzamento
+
+Table 14.1. Addressing Modes
+
+Argument    Description                Example constant             Example command
+
+            None                       RTS                           rts
+
+IMM         Immediate                  LDA_IMM                      lda #$30
+
+ZP          Zeropage                   LDA_ZP                       lda $30
+
+ZPX         Zeropage,x                 LDA_ZPX                      lda $30,x
+
+ZPY         Zeropage,y                 LDX_ZPY                      ldx $30,y
+
+IZPX        Indirect zeropage,x        LDA_IZPX                     lda ($30,x)
+
+IZPY        Indirect zeropage,y        LDA_IZPY                     lda ($30),y
+
+ABS         Absolute                   LDA_ABS                      lda $1000
+
+ABSX        Absolute,x                 LDA_ABSX                     lda $1000,x
+
+ABSY        Absolute,y                 LDA_ABSY                     lda $1000,y
+
+IND         Indirect                   JMP_IND                      jmp ($1000)
+
+REL         Relative                   BNE_REL                      bne loop
+
+
+
+
+
+14.4. Costanti di colore
+
+Kick Assembler ha incorporato le costanti di colore C64:
+
+Tabella 14.2 Costanti di colore
+
+Costante 	            Valore
+NERO 	                  0
+BIANCA 	                  1
+ROSSO 	                  2
+CIANO 	                  3
+VIOLA 	                  4
+VERDE 	                  5
+BLU 	                  6
+GIALLO 	                  7
+ARANCIA 	              8
+MARRONE 	              9
+ROSSO CHIARO 	            10
+DARK_GRAY / grigio_scuro 	11
+GRIGIO GRIGIO 	            12
+VERDE CHIARO 	            13
+AZZURRO 	                14
+LIGHT_GRAY / grigio_chiaro 	15
+
+Esempio di utilizzo:
+
+        lda #BLACK
+        sta $d020
+        lda #WHITE
+        sta $d021
+
+
+
+
+
+
+14.5. Fare calcoli 3D
+
+Per semplificare l'esecuzione di calcoli 3D, Kick Assembler supporta i valori di vettore e matrice.
+
+I valori vettoriali vengono utilizzati per contenere i vettori 3D. Sono creati dalla funzione Vector che accetta x, yey come argomento:
+
+.var v1 = Vector(1,2,3)
+.var v2 = Vector(0,0,2
+
+È possibile accedere alle coordinate del vettore tramite le sue funzioni get ed eseguire le operazioni vettoriali più comuni con le funzioni assegnate. Ecco alcuni esempi:
+
+.var v1PlusV2 = v1+v2
+.print "V1 scaled by 10 is " +
+.var dotProduct = v1*v2
+
+Ecco un elenco di funzioni e operatori vettoriali:
+
+Funzione / Operatore 	        Esempio 	            Descrizione
+get(n) 	  	                                            Restituisce l'ennesima coordinata (x = 0, y = 1, z = 2).
+getX() 	  	                                            Restituisce la coordinata x.
+gety() 	  	                                            Restituisce la coordinata y.
+getz() 	  	                                            Restituisce la coordinata z.
++ 	        Vector (1,2,3) + vettore (2,3,4) 	        Restituisce la somma di due vettori.
+- 	        Vector (1,2,3)-Vector (2,3,4) 	            Restituisce il risultato di una sottrazione tra i due vettori.
+* Numero 	Vettore (1,2,3) * 4.2 	                    Restituisce il vettore ridimensionato di un numero.
+* Vector 	Vector (1,2,3) * vettore (2,3,4) 	        Restituisce il prodotto punto.
+/ 	        Vector (1,2,3) / 2 	                        Divide ciascuna coordinata per un fattore e restituisce il risultato.
+X (v) 	     Vector (0,1,0) .X (Vector (1,0,0)) 	    Restituisce il prodotto incrociato tra due vettori.
+
+Il valore della matrice rappresenta una matrice 4x4. Lo si crea utilizzando la funzione Matrix o una delle altre funzioni del costruttore descritte più avanti. Puoi accedere alle voci della matrice usando le sue funzioni get e set:
+
+.var matrix = Matrix() // Creates an identity matrix
+.eval matrix.set(2,3,100)
+.print "Matrix.get(2,3)=" + matrix.get(2,3)
+.print "The entire matrix=" + matrix
+
+Nelle matrici grafiche 3D vengono solitamente utilizzate per descrivere una trasformazione di uno spazio vettoriale. Può essere quello di spostare le coordinate, ridimensionarle, ruotare quindi, ecc. L'operatore Matrix () crea una matrice di identità, che è quella che lascia invariate le coordinate. Usando la funzione set puoi costruire qualsiasi matrice ti piaccia. Tuttavia, Kick Assembler ha funzioni di costruzione che creano le matrici di trasformazione più comuni:
+
+
+Tabella 14.4 Costruttori a valore di matrice
+
+Funzione 	                         Descrizione
+Matrice() 	                        Crea una matrice di identità.
+RotationMatrix (Ax,Ay Az) 	        Crea una matrice di rotazione in cui aX, aY e aZ sono gli angoli ruotati attorno agli assi x, ye z. Gli angoli sono indicati
+                                    in  radianti.
+ScaleMatrix (sx,sy,SZ) 	            Crea una matrice di scala in cui la coordinata x viene ridimensionata da sX, la coordinata y da sY e la coordinata z da sZ.
+MoveMatrix (Mx My,MZ) 	            Crea una matrice di spostamento che sposta mX lungo l'asse x, mY lungo l'asse y e mZ lungo l'asse z.
+PerspectiveMatrix (zProj) 	        Crea una proiezione prospettica in cui è posizionato il punto di vista (0,0,0) e le coordinate sono proiettate sul piano XY dove z
+                                     = zProj.
+
+Puoi moltiplicare le matrici e quindi combinare le loro trasformazioni. La trasformazione viene letta da destra a sinistra, quindi se si desidera spostare lo spazio 10 lungo l'asse x e quindi ruotarlo di 45 gradi attorno all'asse z, si scrive:
+
+.var m = RotationMatrix(0,0,toRadians(45))*MoveMatrix(10,0,0)
+
+Per trasformare una coordinata, moltiplica la matrice in vettore trasformato:
+
+.var v = m*Vector(10,0,0)
+.print "Transformed v=" + v
+
+Le funzioni definite sulle matrici sono le seguenti:
+
+Funzione / Operatore 	                        Esempio 	             Descrizione
+get(n m) 	  	                                                        Ottiene il valore in n, m.
+set (n, m, valore) 	  	                                                Imposta il valore su n, m.
+*Vettore 	                    Matrix()*vettore (1,2,3) 	            Restituisce il prodotto della matrice e un vettore.
+*Matrice 	                    Matrix()*Matrix () 	                    Restituisce il prodotto di due matrici.
+
+Ecco un piccolo programma per illustrare come utilizzare le matrici. Pre calcola un'animazione di un cubo che ruota attorno agli assi x, ye z ed è proiettata sul piano dove z = 2.5. I dati sono collocati sull'etichetta 'cubeCoords':
+
+// ------------------------------------------------ --------------------------------
+// Oggetti
+// ------------------------------------------------ --------------------------------
+.var Cube=List(). add (
+          Vector (1,1,1), Vector (1,1, -1), Vector (1, -1,1), Vector (1, -1, -1),
+          Vector (-1,1,1), Vector (-1,1, -1), Vector (-1, -1,1), Vector (-1, -1, -1))
+
+
+// ------------------------------------------------ --------------------------------
+// Macro per eseguire il calcolo preliminare
+// ------------------------------------------------ --------------------------------
+.macro PrecalcObject (object, animLength, nrOfXrot, nrOfYrot, nrOfZrot) {
+
+    // Ruota le coordinate e posiziona le coordinate di ciascun tasto in un elenco
+    .var frames = List ()
+    .for (var frameNr = 0; frameNr <animLength; frameNr ++) {
+        // Imposta la matrice di trasformazione
+        .var aX=toRadians (frameNr*360*nrOfXrot/animLength)
+        .var aY=toRadians (frameNr*360 nrOfYrot/animLength)
+        .var aZ=toRadians (frameNr*360*nrOfZrot/animLength)
+        .var zp=2.5 // coordinata z per il piano di proiezione
+        .var m=ScaleMatrix (120.120,0) *
+                    PerspectiveMatrix ZP)*
+                    MoveMatrix(0,0,ZP+5)*
+                    RotationMatrix (Ax,Ay,Az)
+
+        // Trasforma le coordinate
+        .var coords = List()
+        .for (var i = 0; i <object.size(); i++) {
+            .eval coords.add (m object.get(i))
+        }
+        .eval frames.add(coords)
+    }
+
+    // Scarica l'elenco in memoria
+    .for (var coordNr 0; coordNr <object.size(); coordNr++) {
+        .for (var xy=0; xy<2; xy++) {
+            .fill animLength, $ 80 + round (frames.get(i) .get(coordNr) .get(xy))
+        }
+    }
+}
+// ------------------------------------------------ --------------------------------
+// I dati vettoriali
+// ------------------------------------------------ --------------------------------
+.allinea $100
+cubeCoords: PrecalcObject(Cube,256,2,-1,1)
+// ------------------------------------------------ --------------------------------
+
