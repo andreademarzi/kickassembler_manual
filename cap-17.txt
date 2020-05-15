@@ -1,0 +1,493 @@
+Capitolo 17. Plugin Java di terze parti
+
+È possibile scrivere i propri plugin per Kick Assembler. Attualmente sono supportati i seguenti tipi di plug-in:
+
+    Macro Plugin : implementa le macro
+
+    Modifica plugin : implementa modificatori
+
+    Plugin SegmentModifier : implementa modificatori di segmento
+
+    Plug-in di archivio : utilizzati per raggruppare più plug-in in un'unica unità
+
+    Plugin AutoIncludeFile : utilizzati per includere un file di codice sorgente in un archivio
+
+    Plugin DiskWriter : utilizzati per scrivere scrittori di dischi immagine d64.
+
+
+
+
+
+
+
+
+
+17.1. Il progetto di test
+
+Prima di proseguire ti suggerisco di scaricare il progetto eclipse del test di sviluppo del plugin dal sito Web di Kick Assembler.
+
+Per usarlo, procedi come segue:
+
+    Crea uno spazio di lavoro Eclipse.
+
+    'Importa-> Progetti esistenti nell'area di lavoro-> Seleziona file di archivio' e seleziona il file di progetto scaricato.
+
+    Sostituisci il file KickAss.jar nella cartella jars con la versione più recente, se necessario.
+
+Ora sei pronto per iniziare. Nella cartella src puoi vedere esempi di come sono fatti i plugin. I file in PluginTest mostrano come usarli e nella cartella di avvio sono i file di avvio per l'esecuzione degli esempi (tasto destro-> Esegui come).ù
+
+
+
+
+
+
+Per lavorare con i plugin dovresti fare due cose. Durante il montaggio è necessario rendere visibile la classe java compilata dal percorso di classe java. Se stai usando eclipse per eseguire il tuo Kick Assembler, come nel progetto di esempio, non devi preoccuparti di questo. Se si utilizza la riga di comando, è necessario impostare la variabile di ambiente classpath o utilizzare l'opzione classpath del comando java.
+
+In secondo luogo, dovresti dire a Kick Assembler del tuo plugin. Ci sono due modi per farlo. Se il tuo plugin è utilizzato solo in uno dei tuoi progetti, dovresti usare la direttiva .plugin. Per esempio:
+
+.plugin "test.plugins.macros.MyMacro"
+
+
+Se il plug-in dovrebbe essere disponibile ogni volta che usi Kick Assembler, inserisci il nome della classe in una riga nel file "KickAss.plugin" che dovrebbe essere collocato nelle stesse posizioni di KickAss.jar. L'uso di // all'inizio della riga lo rende un commento. Esempio di un file KickAss.plugin:
+
+// My macro plugins
+test.plugins.macros.MyMacro1
+test.plugins.macros.MyMacro2
+test.plugins.macros.MyMacro3
+
+Innanzitutto, vediamo un rapido esempio di un plugin implementato. Per implementare un plug-in macro è necessario creare una classe Java che implementa l'interfaccia IMacro:
+
+public interface IMacro extends IPlugin {
+  MacroDefinition getDefinition();
+  byte[] execute(IValue[] parameters, IEngine engine);
+}
+
+L'interfaccia ha due metodi, uno che ottiene i parametri che definiscono la macro e uno che la esegue. Questa è la struttura di base di quasi tutti i plugin. La classe MacroDefinition è davvero semplice. Consiste in un getter e setter per le proprietà che definiscono. Dal momento che l'unica proprietà che definisce una macro è il suo nome, si presenta così:
+
+public class MacroDefinition {
+// Properties
+private String name;
+// Getters/setters for properties, in this case getName() and setName(name)
+....
+}
+
+Un semplice esempio di implementazione macro che stampa "Hello World da MyMacro!" e restituisce zero byte è simile al seguente:
+
+package test.plugins.macros;
+import kickass.plugins.interf.general.IEngine;
+import kickass.plugins.interf.general.IValue;
+import kickass.plugins.interf.macro.IMacro;
+import kickass.plugins.interf.macro.MacroDefinition;
+
+public class MyMacro implements IMacro {
+  MacroDefinition definition;
+
+  public MyMacro() {
+     definition = new MacroDefinition();
+     definition.setName("MyMacro");
+  }
+
+  @Override
+  public MacroDefinition getDefinition() {
+  return definition;
+  }
+
+  @Override
+  public byte[] execute(IValue[] parameters, IEngine engine) {
+    engine.print("Hello world from mymacro!");
+    return new byte[0];
+  }
+
+}
+
+Lo esegui come una normale macro:
+
+.plugin "test.plugins.macros.MyMacro"
+MyMacro()
+
+Il parametro 'argomenti' sono gli argomenti analizzati nella macro. Puoi leggere queste informazioni nella sezione "lezioni generali di comunicazione". Lo stesso vale per il parametro "engine" che viene utilizzato per comunicare ulteriormente con il motore Kick Assembler.
+
+
+
+
+
+
+
+17.4. Interfacce di comunicazione generali
+
+In questa sezione vengono spiegate le interfacce generali utilizzate in diversi plugin. Sono tutti inseriti nel pacchetto "kickass.plugins.interf.general". I più importanti sono IEngine e IValue. Dai una rapida revisione e torna a questo capitolo quando hai bisogno di informazioni per l'implementazione di un particolare plugin.
+17.4.1. L'interfaccia IEngine
+
+L'interfaccia IEngine è l'oggetto centrale quando si desidera comunicare con Kick Assembler. Con questo puoi segnalare errori, stampare testo, creare un flusso di output per l'output di un file, ecc.
+
+Tabella 17.1 Interfaccia IEngine
+
+Metodo 	                        Descrizione
+void addError (String message,  ISourceRange range); 	   Aggiunge un errore all'elenco degli errori dei motori, ma continua l'esecuzione. Con questo metodo
+                                                            puoi  segnalare diversi errori dal tuo plug-in.
+byte charToByte (char c); 	                                Converte un carattere in un byte animali domestici (maiuscolo).
+
+IMemoryBlock createMemoryBlock                              Crea un blocco di memoria. Utilizzato come risultato in alcuni plug-in.
+(Name stringa, int startAddr, byte[] byte);
+
+void error (String  message); 	                            Stampa un messaggio di errore e interrompe l'esecuzione. Funziona come la direttiva .error.
+                                                            Importante! Questo metodo genererà un AsmException che devi passare attraverso qualsiasi blocco try-catch
+                                                            utilizzato nel tuo codice.
+
+void error (String  message, ISourceRange); 	            Come errore (messaggio stringa), acquista con una posizione specificata nel codice (SourceRange).
+
+
+File getCurrentDirectory();                                Ottiene la directory corrente
+
+
+File getFile (nome file stringa); 	                        Apre un file con il nome file specificato. L'assemblatore cercherà il file come cercherebbe un file di
+                                                            codice sorgente. Se non è presente nella directory corrente, verrà visualizzato nelle directory della
+                                                            libreria. Restituirà null se il file non può essere trovato.
+
+OutputStream openOutputStream                               Usalo per creare output dall'assemblatore (come un file su disco per un
+(String name ) genera l'eccezione;                                                           writer del disco)
+
+void print (String  message); 	                            Stampa un messaggio sullo schermo. Funziona come la direttiva .print.
+
+void printNow (String message); 	                        Stampa un messaggio sullo schermo. Funziona come la direttiva .printnow.
+
+byte[] stringToBytes(String str); 	                        Converte una stringa in byte di petscii (maiuscolo)
+
+
+
+
+
+
+17.4.2. L'interfaccia IValue
+
+Gli oggetti che implementano l'interfaccia IValue rappresentano i valori di Kick Assembler come numeri, stringhe e booleani. Ad esempio, gli argomenti forniti a una macro sono dati come oggetti IValue. L'interfaccia IValue contiene i seguenti metodi per estrarre informazioni dal valore
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Table 17.2. IValue Interface
+Method
+Description
+int getInt(); Gets an integer from the value if possible, otherwise
+it will give an error message.
+Double getDouble(); Gets a double from the value if possible, otherwise it
+will give an error message.
+String getString(); Gets a string from the value if possible, otherwise it
+will give an error message.
+Boolean getBoolean(); Gets a Boolean from the value if possible, otherwise
+it will give an error message.
+Method
+Description
+List<IValue> getList(); Gets at list of values if possible, otherwise it will
+give an error message. The list implements size(), get(i),
+isEmpty() and iterator().
+Boolean hasIntRepresentation(); Tells if you can get an integer from the value. Every
+number value can produce an integer. 3.2 will produce
+3).
+boolean hasDoubleRepresentation(); Tells if you can get a double from the value.
+boolean hasStringRepresentation(); Tells if you can get a string from the value.
+boolean hasBooleanRepresentation(); Tells if you can get a boolean from the value.
+boolean hasListRepresentation(); Tells if you can get a list from the value.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+
+
+
+
+17.4.3. L'interfaccia ISourceRange
+
+L'interfaccia ISourceRange rappresenta una posizione nel codice sorgente. Un esempio potrebbe essere la riga 17 dalla colonna 3 alla riga 17 della colonna 10. Questi sono dati ai plugin per indicare da dove viene chiamato o dove sono definiti determinati parametri. Il plug-in può restituirli durante la segnalazione degli errori per indicare quale codice ha seguito l'errore.
+
+Vista dal plugin, l'interfaccia è vuota:
+
+public interface ISourceRange {
+}
+
+
+
+
+17.4.4. L'interfaccia IMemoryBlock
+
+L'interfaccia IMemoryBlock rappresenta un blocco di memoria. Un blocco è costituito da un indirizzo iniziale e da alcuni dati byte. Ecco un esempio di due blocchi di memoria generati dall'assemblatore:
+
+*=$1000 "Block 1"
+.byte 1,2,3
+*=$2000 "Block 2"
+lda #1
+sta $d020
+rts
+
+Può essere passato come argomento al plug-in o creato dal plug-in e restituito come risultato. Utilizzare 'createMemoryBlock' nell'interfaccia IEngine per creare nuovi blocchi di memoria.
+
+Tabella 17.3 Interfaccia IMemoryBlock
+Metodo 	Descrizione
+int getStartAddress () 	L'indirizzo iniziale del blocco di memoria.
+byte [] getBytes () 	I byte assemblati del blocco di memoria.
+String getName (); 	Il nome del blocco di memoria.
+
+
+
+
+
+17.4.5. L'interfaccia IParameterMap
+
+L'interfaccia IParametersMap rappresenta una raccolta di coppie nome-valore. Il nome è una stringa e il valore è di tipo IValue. Questi parametri del codice sorgente sono generalmente definiti tra parentesi quadre come questa:
+
+[name="Kevin", age=27, hacker=true]
+
+I principali metodi definiti sulle mappe dei parametri sono exist (), getValue (), getSourceRange () e getParameterNames (). Inoltre ci sono alcuni metodi convenienti per un facile recupero di valori di tipi specifici:
+
+Tabella 17.4 Interfaccia IParameterMap
+
+Metodo                                        	Descrizione
+
+boolean esiste (String paramName) 	                              Indica se esiste un parametro con il nome indicato. ù
+
+boolean getBoolValue (String paramName,boolean defaultValue) 	  Restituisce il parametro booleano del nome specificato. Il valore predefinito viene restituito
+                                                                  in  caso di un valore indefinito.
+
+<T extend Enum <?>> T getEnumValue                               Restituisce il parametro enum del nome specificato. Il valore predefinito viene restituito in caso di
+(calss <T> enumeration, name string  , T defaultLitteral)        un valore indefinito.
+
+
+
+int getIntValue (String paramName, int defaultValue) 	          Restituisce il parametro int del nome specificato. Il valore predefinito viene restituito in caso
+                                                                  di  un valore indefinito.
+
+
+Collection <String> getParameterNames () 	                      Restituisce i nomi dei parametri definiti.
+
+ISourceRange getSourceRange (String paramName)                    Restituisce la posizione in cui questo parametro è definito nel codice sorgente.
+
+String getStringValue (String paramName, String defaultValue) 	  Restituisce il parametro stringa del nome specificato. Il valore predefinito viene restituito in
+                                                                  caso di un valore indefinito.
+
+IValue getValue (String paramName) 	                              Restituisce il valore del parametro con il nome specificato.
+
+
+
+
+17.5. I plugin
+
+In questa sezione sono descritti i diversi plugin. La maggior parte segue un modello semplice: contengono due metodi, uno per restituire una definizione per il plugin (nome, parametri richiesti, ecc.) E uno per eseguirlo:
+
+interface XYZPlugin extends IPlugin {
+   XYZDefinition getDefinition();
+   void execute(...);
+}
+
+La classe XYZDefinition contiene semplicemente getter e setter per la definizione del plugin, quindi il tuo metodo getDefinition () dovrebbe semplicemente restituire una XYZDefinition in cui hai impostato i campi usando i setter (setName ("MyPlugin") ecc.). Molte definizioni contengono solo un nome, ma avere una classe di definizioni rende più semplice l'estensione senza interrompere la compatibilità all'indietro.
+
+Scoprirai che tutte le interfacce dei plugin estendono IPlugin. IPlugin è vuoto e semplicemente un modo per garantire la sicurezza dei tipi se vuoi un oggetto, sei sicuro che sia un plugin.
+
+
+
+
+17.5.1. Plugin Macro
+
+L'interfaccia per una macro è simile alla seguente:
+
+public interface IMacro extends IPlugin {
+  MacroDefinition getDefinition();
+  byte[] execute(IValue[] parameters, IEngine engine);
+}
+
+public class MacroDefinition {
+  // Properties
+  private String name;
+
+  // Getters/setters for properties, in this case getName() and setName(name)
+  ....
+}
+
+I plug-in macro sono descritti in precedenza nella sezione "Esempio rapido", quindi cerca un esempio completo.
+
+
+
+
+
+
+17.5.2. Plugin modificatori
+
+Con i modificatori si modificano i byte emessi da una sezione del codice. Ad esempio, il seguente invierà il blocco di memoria a partire da $ 8080, verrà utilizzato il modificatore chiamato "MyModifier" e verranno utilizzati i byte restituiti:
+
+.modify MyModifier(27) {
+   *=$8080
+main:
+   inc $d020
+   jmp main
+}
+
+Si implementa un modificatore implementando la seguente interfaccia. Il "nome" nella definizione è il nome del modificatore ("MyModifier" nell'esempio sopra.):
+
+public interface IModifier extends IPlugin {
+  ModifierDefinition getDefinition();
+  byte[] execute(List<IMemoryBlock> memoryBlocks, IValue[] parameters, IEngine
+engine);
+}
+public class ModifierDefinition {
+  private String name;
+  // Getters and setters
+}
+
+Vedi anche il capitolo sui modificatori.
+
+
+
+
+
+
+
+17.5.3. Plugin SegmentModifier
+
+Con i modificatori di segmento è possibile modificare il blocco di memoria di un segmento prima che venga passato alla sua destinazione. Ad esempio, è possibile implementare un plug-in packer e disporre di un file compresso prima che venga salvato con il comando:
+
+.file [name="PackedData.prg", segments="Data", modify="MyPacker", _start=$2000]
+
+Un modificatore di segmento viene creato implementando una classe che realizza il plugin ISegmentModifier:
+
+public interface ISegmentModifier extends IPlugin {
+   SegmentModifierDefinition getDefinition();
+   List<IMemoryBlock> execute(List<IMemoryBlock> memoryBlocks, IParameterMap
+ parameters, IEngine engine);
+}
+
+
+   public class SegmentModifierDefinition {
+   private String name;
+   private Set<String> allParameters;
+   private Set<String> nonOptionalParameters;
+
+   // getters and setters
+}
+
+Il set allParameters definisce i possibili parametri per il modificatore. Come convenzione dovresti prefissarli con _ come '_start' nell'esempio sopra. In questo modo i nomi non si scontreranno con i nomi dei parametri del segmento futuro e puoi facilmente dire quali parametri appartengono al modificatore.
+
+Consulta il capitolo "Segmenti" per ulteriori informazioni sui modificatori di segmento e sul progetto di esempio su come implementare.
+
+
+
+
+
+17.5.4. Plugin DiskWriter
+
+Con gli scrittori di dischi puoi scrivere dischi nel formato che decidi tu. Prima di leggere più avanti, leggi lo scrittore di dischi standard per vedere cosa sono in grado di fare. Per creare un writer si implementa una classe dell'interfaccia IDiskWriter:
+
+public interface IDiskWriter extends IPlugin {
+    DiskWriterDefinition getDefinition();
+    void execute(IDiskData disk, IEngine engine);
+}
+
+public class DiskWriterDefinition {
+    private String name;
+    private Set<String> allDiskParameters;
+    private Set<String> nonOptionalDiskParameters;
+    private Set<String> allFileParameters;
+    private Set<String> nonOptionalFileParameters;
+}
+
+Richiama il formato della direttiva .disk per comprendere le proprietà della definizione:
+
+.disk WRITERNAME [...DISK PARAMETERS..] {
+   [..FILE1 PARAMETERS..],
+   [..FILE2 PARAMETERS..],
+   [..FILE3 PARAMETERS..],
+   ....
+}
+
+Quando WRITERNAME corrisponde al nome indicato nella definizione, viene chiamato lo scrittore. Quindi abbiamo due tipi di parametri: parametri del disco e del file. Per ognuno di questi è un insieme di tutti i parametri possibili e un insieme di parametri non opzionali. Se viene dato un parametro che non è incluso nel set allParameters, Kick Assembler genererà un errore. Lo stesso accadrà se manca un parametro non opzionale.
+
+Il metodo execute ha parametri di due nuove interfacce:
+
+public interface IDiskData {
+     IParameterMap getParameters();
+     List<IDiskFileData> getFiles();
+}
+public interface IDiskFileData {
+    IParameterMap getParameters();
+    List<IMemoryBlock> getMemoryBlocks();
+}
+
+Questi rappresentano i parametri indicati e forniscono i valori e i byte che devono essere memorizzati in ciascun file.
+
+Quando si crea il file di output, utilizzare l'oggetto IEngine per aprire un flusso di output per la memorizzazione dei byte. Per i dettagli, consultare il progetto di esempio.
+
+17.5.5. Plugin di archivio
+
+Puoi raccogliere più plugin in un archivio. Questo rende possibile registrarli con una sola direttiva plugin. Per creare un archivio si implementa una classe dell'interfaccia IArchive:
+
+public interface IArchive extends IPlugin {
+  public List<IPlugin> getPluginObjects();
+}
+
+Un'implementazione potrebbe apparire così:
+
+public class MyArchive implements IArchive{
+    @Override
+    public List<Object> getPluginObjects() {
+        List<Object> list = new ArrayList<Object>();
+        list.add(new MyMacro());
+        list.add(new MyModifyer());
+        return list;
+    }
+}
+
+La seguente direttiva plugin registrerà quindi sia MyMacro che MyModifyer.
+
+.plugin "test.plugins.archives.MyArchive"
+
+
+
+
+
+17.5.6. Plugin AutoIncludeFile
+
+ plug-in AutoIncludeFile vengono utilizzati per includere file di codice sorgente negli archivi. È possibile che si desideri raggruppare un file di origine contenente una macro depack insieme a un modificatore di segmento che comprime un segmento.
+
+I plug-in AutoIncludeFile hanno un'interfaccia come tutti gli altri plug-in, ma nel 99% dei casi è possibile utilizzare l'implementazione standard inclusa nel vaso KickAssembler. Supponiamo di avere un file sorgente (MyAutoInclude.asm) con una macro che si desidera includere automaticamente durante l'importazione dell'archivio:
+
+//FILE: MyAutoInclude.asm
+.macro SetColor(color) {
+        lda #color
+        sta $d020
+}
+
+Quindi inserisci MyAutoInclude.asm nel file jar nel pacchetto 'include' e aggiungi un oggetto della classe AutoIncludeFile al tuo archivio. L'archivio potrebbe essere simile al seguente:
+
+public class MyArchive implements IArchive{
+    @Override
+    public List<IPlugin> getPluginObjects() {
+        ArrayList<IPlugin> plugins = new ArrayList<>();
+        plugins.add(new SomePlugin1());
+        plugins.add(new SomePlugin2());
+        plugins.add(new AutoIncludeFile("MyArcive.jar",getClass(),"/include/
+        MyAutoInclude.asm"));
+        return plugins;
+    }
+}
+
+Nel costruttore AutoIncludeFile dai:
+
+  1   Jar-name - da utilizzare per la stampa di messaggi di errore
+
+  2   Un oggetto 'class' casuale dal vaso - questo è usato per aprire la risorsa.
+
+  3   Un percorso per la risorsa: il posizionamento all'interno del vaso.
+
+Il file verrà ora compilato con il resto della fonte se l'archivio viene importato.
+
+Per completezza, ecco l'interfaccia IAutoIncludeFile, ma come detto, probabilmente non ne avrai bisogno.
+
+public interface IAutoIncludeFile extends IPlugin {
+    AutoIncludeFileDefinition getDefinition();
+    InputStream openStream();
+}
+
+public class AutoIncludeFileDefinition {
+    private String filePath;
+    private String jarName;
+}
+
