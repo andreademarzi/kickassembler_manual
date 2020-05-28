@@ -1,0 +1,53 @@
+Dettagli tecnici
+
+In Kick Assembler 3 sono state implementate alcune tecniche piuttosto avanzate per rendere l'assemblaggio più flessibile e corretto. Descriverò alcuni dei punti principali qui. NON DEVI SAPERE QUESTO, ma se sei curioso di conoscere i dettagli tecnici, continua a leggere.
+1. L'algoritmo di analisi flessibile
+
+Kick Assembler 3 utilizza un algoritmo di passaggio flessibile, che analizza il più possibile ogni comando o direttiva dell'assemblatore in ogni passaggio. Alcuni comandi possono essere completati al primo passaggio, come lda # 10 o sta $ 1000. Ma se un comando dipende da informazioni non ancora fornite, come 'routine jmp' in cui l'etichetta di routine non è stata ancora definita, è necessario un passaggio aggiuntivo. Kick Assembler continua a eseguire passaggi fino a quando l'assemblaggio non è terminato o non sono stati fatti progressi. Puoi scrivere programmi che richiedono solo un passaggio, ma la maggior parte dei programmi ne richiede due o più. Questo approccio è più flessibile e offre vantaggi rispetto al normale assemblaggio a passaggio fisso. Tutte le direttive nonDevono essere nella stessa fase di assemblaggio, il che offre alcune buone possibilità per le direttive future.
+
+
+
+
+
+
+
+
+
+
+
+2. Registrazione degli effetti collaterali
+
+Gli effetti collaterali delle direttive sono ora registrati e riprodotti i passaggi successivi. Considera la seguente direttiva eval: .eval a = [5 + 8/2 + 1] * 10. Nel primo passaggio verrà eseguito il calcolo [5 + 8/2 + 1] * 10 e troverai il risultato 100, che essere assegnato a. Nel passaggio successivo non viene eseguito alcun calcolo, viene eseguito solo l'effetto collaterale (a = 100). Questo accelera i programmi con script pesanti, poiché lo script deve essere eseguito solo una volta.
+
+
+
+
+
+3. Modalità funzione e modalità Asm
+
+L'assemblatore di calci ha due modalità per eseguire le direttive. La "Modalità funzione" viene utilizzata quando la direttiva è inserita in una funzione o nella direttiva .define, altrimenti viene utilizzata la "Modalità asm". La "Modalità funzione" viene eseguita rapidamente ma è limitata ai soli comandi di script (.var, .const, .for, ecc.), Mentre la "Modalità asm" può gestire tutte le direttive e registra gli effetti collaterali come descritto nella sezione precedente. Tutta la valutazione inizia in "Modalità Asm" ed entra in "Modalità funzione" se si entra nel corpo di una funzione o di una direttiva .define. Ciò significa che a un certo punto esiste sempre una direttiva che registra il risultato della valutazione.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4. Calcoli di valori non validi
+
+Valori non validi si verificano quando le informazioni utilizzate per calcolare un valore non ancora disponibile. Di solito questo inizia con un valore di etichetta non risolto, che viene definito più avanti nel codice sorgente. Normalmente smetteresti di assemblare la direttiva attuale una volta raggiunto un valore non valido, ma ciò potrebbe tralasciare alcuni effetti collaterali che avevi intenzione di accadere, quindi invece di fermarsi, l'assemblatore ora continua a operare su valori non validi. Quindi un'etichetta non risolta è solo un valore numerico non risolto. Se aggiungi due valori numerici e uno di questi non è valido, il risultato sarà un altro valore numerico non valido. Se si confrontano due numeri non validi, si ottiene un valore booleano non valido e così via.Questo aiuta a rintracciare quali valori invalidare. Se ad esempio si utilizza un numero non valido come indice in una funzione impostata in un elenco, è necessario invalidare l'intero elenco poiché non si conosce quale elemento viene sovrascritto. Alcuni esempi di calcoli di valori non validi:
+
+4+InvalidNumber -> InvalidNumber
+InvalidNumber != 5 -> InvalidBoolean
+myList.set(3, InvalidNumber) -> [?,?,InvalidNumber]
+myList.set(InvalidNumber, “Hello”) -> InvalidList
+myList.set(4+4*InvalidNumber, “Hello”) -> InvalidList
+
