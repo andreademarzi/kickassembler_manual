@@ -1,0 +1,152 @@
+Passa dalla versione 3.x alla 4.0
+1. Le nuove funzionalità
+
+Il parser è stato riscritto, rendendo possibili alcune nuove funzionalità:
+
+    Ora puoi usare * = $ 1000 come nel buon vecchio Turbo Assembler.
+
+    Ora puoi usare la parentesi morbida. Kick Assembler saprà dal contesto quando si intende una modalità di indirizzamento indiretto e quando si tratta di una parentesi normale.
+
+    È stato implementato un preprocessore. Ora puoi usare i comandi #define, #undefine, #if, #else, #elif e #endif (chi conosce il preprocessore C # avrà familiarità con questi).
+
+    Esistono anche comandi del preprocessore per l'importazione dei sorgenti: #import, #importif, #importonce. #import e #importonce funzionano come le direttive conosciute dalla versione 3.x. , ma funziona meglio insieme al preprocessore. #importif supporta le importazioni condizionate come semplice oneliner.
+
+    I due punti davanti alle chiamate macro e pseudocomandi sono ora opzionali.
+
+    Ora puoi aggiungere un ';' opzionale dopo direttive e mnemoniche. Ciò è utile se si utilizza per programmare linguaggi come C ++ / Java o C # dove sono richiesti.
+
+    Kick Assembler ora segnala più errori nella fase di analisi anziché solo il primo.
+
+    Kick Assembler ora può riportare gli elementi di sintassi agli editor. (IN CORSO)
+
+    Kick Assembler ora può riportare gli errori di sintassi agli editor, senza iniziare a valutare il codice. (IN CORSO)
+
+    Il nuovo parser è più veloce. La suite di test Kick Assembler ora si assembla in meno della metà del tempo impiegato quando si utilizza v3.40.
+
+Il sistema scoping / namespace è stato aggiornato:
+
+    Funzioni, Macro e PseudoCommandi vengono ora inseriti nello spazio dei nomi corrente quando definiti. (In 3.x solo simboli con ambito)
+
+    Gli spazi dei nomi ora possono essere riutilizzati (diversi file possono utilizzare lo stesso spazio dei nomi senza ottenere un errore "simbolo già definito").
+
+    Ora esiste una funzione getNamespace () che indica lo spazio dei nomi corrente.
+
+    Utilizzare '@' come prefisso quando si definisce un simbolo / funzione / macro / pseudocomando per inserirlo nello spazio radice o nello spazio dei nomi radice.
+
+    Utilizzare '@' come prefisso quando si fa riferimento a un simbolo / funzione / macro / pseudocomando per cercarlo nello spazio radice o nello spazio dei nomi radice.
+
+    AVVISO: al momento non è possibile visualizzare funzioni / macro / pseudocomandi dall'esterno di uno spazio dei nomi, quindi posizionare le funzioni della libreria pubblica nello spazio dei nomi radice.
+
+    L'importazione ora importa sempre nell'ambito radice (non utilizza l'ambito nella chiamata di importazione come ambito padre)
+
+    Le chiamate di funzione / macro / pseudocomando ora hanno l'ambito della definizione (dove è definita la funzione / macro / pseudocomando) come ambito principale durante la chiamata. Ciò è coerente con la maggior parte dei linguaggi come Java, C # ecc.
+
+    Tutti i riferimenti a un simbolo / funzione / macro / pseudocomando sono ora risolti nel prepass '. Ciò significa che otterrai subito errori per i simboli errati. Significa anche che è possibile ottenere errori da codice non eseguito.
+
+    Risolvendo i simboli nel prepass 'si ottengono tempi di assemblaggio uguali o leggermente più lenti per le sorgenti luminose ad alte prestazioni, ma per calcoli pesanti è molto più veloce (Esempio: l'esempio fractal2 di v3.x si assembla più velocemente del 38% con Kick Assembler 4)
+
+Altre notizie sono:
+
+    Ora c'è una direttiva .while
+
+    Ora è disponibile un'appendice di "riferimento rapido" aggiornata di opzioni, direttive per il preprocessore, direttive e tipi di valore.
+
+    Esiste ora una direttiva .encoding per passare dalla codifica petscii / screencode a maiuscola / mista.
+
+    Le righe che iniziano con # in KickAss.cfg ora sono ignorate.
+
+    La fonte nel manuale è stata aggiornata
+
+    La suite di esempio è stata riscritta (vale la pena dare un'occhiata)
+
+    Un convertitore per aiutare a convertire da v3.x a 4.x è incluso nel file zip distribuito.
+
+
+
+
+
+
+    2. Differenze nella sintassi
+
+C'è una piccola modifica nella sintassi tra la versione 3.xe 4.x, il che significa che alcuni codici potrebbero non essere compilati immediatamente - ma non preoccuparti, abbiamo creato un convertitore per convertire i sorgenti nella nuova sintassi e avere un comando opzione di linea che farà funzionare la maggior parte del codice.
+
+In Kick Assembler 3.x l'assemblatore sa automaticamente quando un comando termina e ne inizia un altro. Ciò significa che puoi scrivere diversi comandi in una riga in questo modo:
+
+
+sei lda #$1b sta $d011 lda #$32 sta $d012
+
+Nella versione 4.x devi separare i comandi con uno spostamento di riga o un punto e virgola. Quindi nella versione 4.x quanto sopra appare così:
+
+sei; lda #$1b; sta $d011; lda #$32; sta $d012
+
+In generale, questo non è un problema poiché di solito metti ogni mnemonico su una linea separata. Se si desidera che un comando si estenda su più righe, utilizzare una parentesi (dura o morbida). Poiché KickAssembler equilibra i set di parentesi, solo le nuove righe sul livello esterno interromperanno il comando in modo da poter scrivere in questo modo:
+
+    lda #(
+         7 * calculateSomething(a,b)
+         + 3 * calculateSomeMore(x,y,z)
+)
+
+L'uso del punto e virgola per terminare i comandi si scontrano con i vecchi pseudo comandi che utilizzano il punto e virgola per separare i suoi argomenti. Per essere compatibile con i vecchi pseudo comandi, utilizzare l'opzione -pseudo3x nella riga di comando. Non sarai in grado di scrivere diversi comandi dopo una chiamata pseudocomando, ma il tuo vecchio codice verrà compilato. Un'opzione migliore è quella di convertire il codice nella nuova sintassi in cui tutti i punti e virgola vengono cambiati in due punti normali. (Puoi usare il convertitore incluso nel file zip di KickAssembler):
+
+// Pseudocommand calls in V3.x
+:mov #10 ; data,x
+
+// Pseudocommand calls in V4.x
+mov #10 : data,x     // The colon in front is now optional
+
+
+
+
+
+3. Differenza nel comportamento
+
+Dal momento che tutti i riferimenti sono ora controllati prepass, il codice morto può causare errori. Ad esempio, una funzione che non viene mai chiamata ora genererà un errore:
+
+.function myFunc1() {
+    .var x = unknownSymbol; // Error: Undefined symbol
+}
+
+Le direttive If all'interno delle funzioni / definisce sono ora incluse, il che significa che non puoi più fare così (Questo è già il caso delle direttive .if esterne alle funzioni / definisce):
+
+.function myFunc1(flag) {
+        .if (flag)
+            .var message = "flag is true"
+        else
+            .var message = "flag is false"
+.print message        // Error - 'message' is unknown
+}
+
+
+
+
+
+
+
+4. Conversione di fonti 3.x
+
+Per semplificare il passaggio dalla versione 3.x alla 4, utilizzare il convertitore per convertire i vecchi file sorgente.
+
+Innanzitutto, esegui un backup del tuo sorgente prima della conversione. I file di origine verranno sovrascritti, pertanto è consigliabile disporre di una copia dei file di origine originali. Nel caso in cui vengano forniti aggiornamenti al convertitore, è necessario convertire nuovamente il codice sorgente v3 originale.
+
+Il primo passo nella conversione è l'avvio del convertitore. Questo viene fatto dal seguente comando:
+
+java -jar KickAss3To4Converter.jar
+
+Il secondo passo è selezionare cosa convertire. Questo viene fatto selezionando le caselle di controllo nel pannello superiore. Quelli già controllati sono pensati per essere convertiti (dovresti avere una buona ragione per deselezionarli). Le opzioni non selezionate ('Sostituisci .pc con *') sono modifiche estetiche.
+
+Il terzo passaggio nella conversione è selezionare quali file di origine convertire. Per fare ciò, utilizzare i 3 pulsanti:
+
+    'Aggiungi file': ti dà una finestra di dialogo da cui puoi scegliere i singoli file sorgente.
+
+    'Aggiungi SourceDir': ti dà una finestra di dialogo da cui puoi aggiungere file sorgente di un dato tipo da una directory sorgente e dalle sue sottodirectory.
+
+    "Rimuovi file": rimuove i file selezionati dall'elenco dei file corrente.
+
+I file selezionati verranno visualizzati nell'elenco al centro.
+
+Al termine, eseguire l'ultimo passaggio premendo il pulsante 'Converti' e la conversione verrà eseguita.
+
+Il convertitore si occuperà della maggior parte delle transizioni. Attualmente i problemi noti sono:
+
+    Se un comando si estende su più di una riga e non contiene un tipo di parentesi (morbida, dura o riccia), potrebbe essere necessario impostarne una come spiegato nella sezione precedente.
+
