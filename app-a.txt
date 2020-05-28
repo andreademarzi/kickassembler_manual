@@ -1,0 +1,454 @@
+Riferimento rapido
+1. Opzioni della riga di comando
+
+Tabella 40. Opzioni della riga di comando
+
+Opzione 	                  Esempio 	                              Descrizione
+
+-afo 	                    -afo 	                           Consente l'output di file all'esterno della directory di output.
+
+-aom 	                    -aom 	                           Consenti blocchi di memoria sovrapposti. Con questa opzione, i blocchi di memoria sovrapposti
+                                                               produrranno un avviso anziché un errore.
+
+-asminfo 	                -asminfo all 	                   Attiva l'esportazione delle informazioni di assemblaggio
+
+-asminfofile 	            -asminfofile myAsmInfo.txt 	       Indica dove emettere il file asminfo.
+
+-binfile 	                -binfile 	                       Imposta l'output su un file bin anziché su un file prg. La differenza tra un bin e un file prg è che il
+                                                               file bin non contiene i due byte dell'indirizzo iniziale.
+-bytedump 	                -bytebump 	                       Scarica i byte assemblati nel file ByteDump.txt insieme al codice che li ha generati.
+
+-bytedumpfile 	            -bytebumpfile myfile.txt 	       Come -bytedump ma con un argomento che specifica il nome del file
+-cfgfile 	                -cfgfile"../../MyConfig.Cfg" 	   Utilizza un file di configurazione aggiuntivo (come KickAss.cfg). Fornire il file come percorso assoluto
+                                                               o percorso relativo al file di origine. Puoi avere tutti i file di configurazione aggiuntivi che
+                                                               desideri.
+
+-debug 	                    -debug 	                           Per uso di sviluppo. Aggiunge ulteriori informazioni di debug, come stacktraces, all'output.
+
+-debugdump 	                -debugdump 	                       Scarica un infofile per il debugger c64 che mappa i byte assemblati nelle posizioni nel codice sorgente.
+
+-define 	                -define DEBUG 	                   Definisce un simbolo del preprocessore.
+
+-dtv 	                    -dtv 	                           Abilita i codici operativi DTV.
+
+-excludeillegal 	        -excludeillegal 	               Escludere i codici operativi illegali dal set di istruzioni
+
+-execute 	                -execute "x64 + sound" 	           Eseguire un determinato programma con il file assemblato come argomento. È possibile utilizzare questo
+                                                               per avviare un emulatore C64 con il programma assemblato se il montaggio ha esito positivo.
+
+-executelog 	            -executelog execlog.txt 	       Se impostato, questo genera un file di log per l'output del programma eseguito utilizzando l'opzione '
+                                                               -execute'.
+
+-fillbyte 	                -fillbyte 255 	                   Imposta il byte utilizzato per riempire lo spazio tra i blocchi di memoria nel file prg
+.
+-libdir 	                -libdir ../stdLib 	               Definisce un percorso di libreria in cui verrà visualizzato l'assemblatore quando tenta di aprire file
+                                                               esterni.
+
+-log 	                    -log logfile.txt 	               Stampa l'output dell'assemblatore su un file di registro.
+
+-maxaddr 	                -maxaddr 8191 	                   Imposta il limite superiore per la memoria, il valore predefinito è 65535. L'impostazione di un
+                                                               valore negativo significa memoria illimitata.
+
+-mbfiles 	                -mbfiles 	                       Verrà salvato un file per ciascun blocco di memoria anziché un file di grandi dimensioni.
+
+-noeval 	                -noeval 	                       Analizzare il codice sorgente ma uscire prima della valutazione.
+
+-o 	                        -o dots.prg 	                   Imposta il file di output. L'impostazione predefinita è il nome file di input con un '.prg'
+                                                               come suffisso.
+
+-odir 	                    -ci out  	                       Imposta la directory di output. I file di output verranno emessi in questa directory (o in relazione a
+                                                               questa directory)
+
+-pseudoc3x 	                -pseudoc3x 	                       Abilita il punto e virgola tra gli argomenti pseudocommand.
+
+-replacefile 	            -replacefile c:\source.asm         Sostituisce un determinato file sorgente con un altro ogni volta che viene indicato.
+                             c:\sostituzione.asm
+-showmem 	                -showmem 	                       Mostra una mappa di memoria dopo il montaggio.
+
+-symbolfile 	            -symbolfile 	                   Genera un file .sym con i simboli risolti. Il file può essere utilizzato in altre fonti con la
+                                                               direttiva sorgente .import.
+
+-symbolfiledir 	            -symbolfiledir fonti/symbolfiles   Specifica la cartella in cui è scritto symbolfile. Se non ne viene fornito nessuno, viene scritto
+                                                               accanto al file sorgente.
+
+-time	                    -time 	                           Visualizza il tempo di assemblaggio.
+
+-vicesymbols 	            -vicesymbols 	                   Genera un file etichetta per VICE.
+
+-warningsoff 	            -warningsoff 	                   Disattiva i messaggi di avviso.
+
+:name= 	                    :x=34: version beta2:              La notazione ':' indica le variabili stringa passate allo script. È possibile accedervi utilizzando la
+                            path="c:/ 64/" 	                   tabella hash 'cmdLineVars' che è disponibile dallo script.
+
+
+
+
+2. Direttive del preprocessore
+
+Tabella 41. Direttive del preprocessore
+
+PreprocessorDirectives              Example                              Description
+
+#define                             #define DEBUG                        Defines a preprocessor symbol.
+
+#elif                               #elif TEST                           The combination of an #else and an #if preprocessor directive.
+
+#else                            	#else 	                             Utilizzato dopo un #if per avviare un blocco else che viene eseguito se la condizione è falsa.
+
+#endif 	                            #endif 	                             Contrassegna la fine di un blocco # if / # else.
+
+#if 	                            #if! DEBUG           	             Elimina il codice sorgente dopo la direttiva # if se la condizione è falsa.
+
+#import 	                        #import "file2.asm" 	             Importa un altro file sorgente.
+
+#importif 	                        #importif! DEBUG "file2.asm" 	     Importa un altro file sorgente se l'espressione data viene valutata come vera.
+
+#importonce 	                    #importonce 	                     Fai in modo che l'assemblatore salti il ​​file corrente se è già stato importato.
+
+#undef 	                            #undef DEBUG 	                     Rimuove la definizione di un simbolo del preprocessore.
+
+
+
+
+
+
+
+
+
+3.1. Mnemonica standard 6502
+
+Le istruzioni standard 6502 sono le seguenti.
+
+Tabella 42. Standard 6502 Mnemonici
+
+
+cmd 	noarg 	imm 	zp 	zpx 	zpy 	izx 	izy 	abs 	Abx 	aby 	ind 	rel
+adc 	  	$69 	$65 	$75 	  	$61 	$71 	$6d 	$7d 	$79
+and 	  	$29 	$25 	$35 	  	$21 	$31 	$2d 	$3d 	$39
+asl 	$0a 	  	$06 	$16 	  	  	  	$0e 	$1e
+bcc 	  	  	  	  	  	  	  	  	  	  	  	$90
+bcs 	  	  	  	  	  	  	  	  	  	  	  	$b0
+beq 	  	  	  	  	  	  	  	  	  	  	  	$f0
+bit 	  	  	$24 	  	  	  	  	$2c
+bmi 	  	  	  	  	  	  	  	  	  	  	  	$30
+bne 	  	  	  	  	  	  	  	  	  	  	  	$d0
+bpl 	  	  	  	  	  	  	  	  	  	  	  	$10
+brk 	$00
+bvc 	  	  	  	  	  	  	  	  	  	  	  	$50
+bvs 	  	  	  	  	  	  	  	  	  	  	  	$70
+clc 	$18
+cld 	$d8
+cli 	$58
+clv 	$b8
+cmp 	  	$c9 	$c5 	$d5 	  	$c1 	$d1 	$cd 	$dd 	$d9
+cpx 	  	$e0 	$e4 	  	  	  	  	$ec
+cpy 	  	$c0 	$c4 	  	  	  	  	$cc
+dec 	  	  	$c6 	$d6 	  	  	  	$ce 	$de
+dex 	$ca
+dey 	$88
+eor 	  	$49 	$45 	$55 	  	$41 	$51 	$4d 	$5d 	$59
+inc 	  	  	$e6 	$f6 	  	  	  	$ee 	$fe
+inx 	$e8
+iny 	$c8
+jmp 	  	  	  	  	  	  	  	$4c 	  	  	$6c
+jsr 	  	  	  	  	  	  	  	$20
+lda 	  	$a9 	$a5 	$b5 	  	$a1 	$b1 	$ad 	$bd 	$b9
+ldx 	  	$a2 	$a6 	  	$b6 	  	  	$ae 	  	$be
+ldy 	  	$a0 	$a4 	$b4 	  	  	  	$ac 	$bc
+lsr 	$4a 	  	$46 	$56 	  	  	  	$4e 	$5e
+nop 	$ea
+ora 	  	$09 	$05 	$15 	  	$01 	$11 	$0d 	$1d 	$19
+pha 	$48
+php 	$08
+pla 	$68
+plp 	$28
+rol 	$2a 	  	$26 	$36 	  	  	  	$2e 	$3e
+ror 	$6a 	  	$66 	$76 	  	  	  	$6e 	$7e
+rti 	$40
+rts 	$60
+sbc 	  	$e9 	$e5 	$f5 	  	$e1 	$f1 	$ed 	$fd 	$f9
+sec 	$38
+sed 	$f8
+sei 	$78
+sta 	  	  	$85 	$95 	  	$81 	$91 	$8d 	$9d 	$99
+stx 	  	  	$86 	  	$96 	  	  	$8e
+sty 	  	  	$84 	$94 	  	  	  	$8c
+tax 	$aa
+tay 	$a8
+tsx 	$ba
+txa 	$8a
+txs 	$9a
+tya 	$98
+
+
+
+
+
+
+3.2. Mnemonica 6502 illegale
+
+Il set di istruzioni illegali contiene i 650n mnemonici standard più le modifiche seguenti. Questa è l'istruzione predefinita impostata per Kick Assembler. Puoi ottenerlo scrivendo '.cpu _6502'
+
+Tabella 43. Mnemonica illegale 6502
+
+cmd 	noarg 	imm 	zp 	zpx 	zpy 	izx 	izy 	abs 	abx 	aby 	ind 	rel
+ahx 	  	  	  	  	  	  	$93 	  	  	$9f
+alr 	  	$4b
+anc 	  	$0b
+anc2 	  	$2b
+arr 	  	$6b
+axs 	  	$cb
+dcp 	  	  	$c7 	$d7 	  	$c3 	$d3 	$cf 	$df 	$db
+isc 	  	  	$e7 	$f7 	  	$e3 	$f3 	$ef 	$ff 	$fb
+las 	  	  	  	  	  	  	  	  	  	$bb
+lax 	  	$ab 	$a7 	  	$b7 	$a3 	$b3 	$af 	  	$bf
+nop 	$ea 	$80 	$04 	$14 	  	  	  	$0c 	$1c
+rla 	  	  	$27 	$37 	  	$23 	$33 	$2f 	$3f 	$3b
+rra 	  	  	$67 	$77 	  	$63 	$73 	$6f 	$7f 	$7b
+sax 	  	  	$87 	  	$97 	$83 	  	$8f
+sbc2 	  	$eb
+shx 	  	  	  	  	  	  	  	  	  	$9e
+shy 	  	  	  	  	  	  	  	  	$9c
+slo 	  	  	$07 	$17 	  	$03 	$13 	$0f 	$1f 	$1b
+sre 	  	  	$47 	$57 	  	$43 	$53 	$4f 	$5f 	$5b
+tas 	  	  	  	  	  	  	  	  	  	$9b
+xaa 	  	$8b
+
+
+
+3.3. DTV
+
+Il set di istruzioni DTV contiene gli standard + illegali 6502 mnemonici più le modifiche seguenti. Puoi ottenerlo scrivendo '.cpu dtv'
+
+Tabella 44. DTV Mnemonics
+
+cmd 	noarg 	imm 	zp 	zpx 	zpy 	izx 	izy 	abs 	abx 	aby 	ind 	rel
+bra 	  	  	  	  	  	  	  	  	  	  	  	$12
+sac 	  	$32
+sir 	  	$42
+
+
+	  	  	  	  	3.4. 65c02 Mnemonici
+
+Il set di istruzioni 65c02 contiene i 650n mnemonici standard più le modifiche seguenti. Notare le 3 modalità di indirizzamento extra. Puoi ottenerlo scrivendo '.cpu _65c02'
+
+Tabella 45. 65c02 Mnemonici
+
+cmd 	noarg 	imm 	zp 	zpx 	zpy 	izx 	izy 	abs 	abx 	aby 	ind 	rel 	izp 	zprel 	indx
+adc 	  	$69 	$65 	$75 	  	$61 	$71 	$6d 	$7d 	$79 	  	  	$72
+and 	  	$29 	$25 	$35 	  	$21 	$31 	$2d 	$3d 	$39 	  	  	$32
+bbr0 	  	  	  	  	  	  	  	  	  	  	  	  	  	$0f
+bbr1 	  	  	  	  	  	  	  	  	  	  	  	  	  	$1f
+bbr2 	  	  	  	  	  	  	  	  	  	  	  	  	  	$2f
+bbr3 	  	  	  	  	  	  	  	  	  	  	  	  	  	$3f
+bbr4 	  	  	  	  	  	  	  	  	  	  	  	  	  	$4f
+bbr5 	  	  	  	  	  	  	  	  	  	  	  	  	  	$5f
+bbr6 	  	  	  	  	  	  	  	  	  	  	  	  	  	$6f
+bbr7 	  	  	  	  	  	  	  	  	  	  	  	  	  	$7f
+bbs0 	  	  	  	  	  	  	  	  	  	  	  	  	  	$8f
+bbs1 	  	  	  	  	  	  	  	  	  	  	  	  	  	$9f
+bbs2 	  	  	  	  	  	  	  	  	  	  	  	  	  	$af
+bbs3 	  	  	  	  	  	  	  	  	  	  	  	  	  	$bf
+bbs4 	  	  	  	  	  	  	  	  	  	  	  	  	  	$cf
+bbs5 	  	  	  	  	  	  	  	  	  	  	  	  	  	$df
+bbs6 	  	  	  	  	  	  	  	  	  	  	  	  	  	$ef
+bbs7 	  	  	  	  	  	  	  	  	  	  	  	  	  	$ff
+bit 	  	$89 	$24 	$34 	  	  	  	$2c 	$3c
+bra 	  	  	  	  	  	  	  	  	  	  	  	$80
+cmp 	  	$c9 	$c5 	$d5 	  	$c1 	$d1 	$cd 	$dd 	$d9 	  	  	$d2
+dec 	$3a 	  	$c6 	$d6 	  	  	  	$ce 	$de
+eor 	  	$49 	$45 	$55 	  	$41 	$51 	$4d 	$5d 	$59 	  	  	$52
+inc 	$1a 	  	$e6 	$f6 	  	  	  	$ee 	$fe
+jmp 	  	  	  	  	  	  	  	$4c 	  	  	$6c 	  	  	  	$7c
+lda 	  	$a9 	$a5 	$b5 	  	$a1 	$b1 	$ad 	$bd 	$b9 	  	  	$b2
+ora 	  	$09 	$05 	$15 	  	$01 	$11 	$0d 	$1d 	$19 	  	  	$12
+phx 	$da
+phy 	$5a
+plx 	$fa
+ply 	$7a
+rmb0 	  	  	$07
+rmb1 	  	  	$17
+rmb2 	  	  	$27
+rmb3 	  	  	$37
+rmb4 	  	  	$47
+rmb5 	  	  	$57
+rmb6 	  	  	$67
+rmb7 	  	  	$77
+sbc 	  	$e9 	$e5 	$f5 	  	$e1 	$f1 	$ed 	$fd 	$f9 	  	  	$f2
+smb0 	  	  	$87
+smb1 	  	  	$97
+smb2 	  	  	$a7
+smb3 	  	  	$b7
+smb4 	  	  	$c7
+smb5 	  	  	$d7
+smb6 	  	  	$e7
+smb7 	  	  	$f7
+sta 	  	  	$85 	$95 	  	$81 	$91 	$8d 	$9d 	$99 	  	  	$92
+stp 	$db
+stz 	  	  	$64 	$74 	  	  	  	$9c 	$9e
+trb 	  	  	$14 	  	  	  	  	$1c
+tsb 	  	  	$04 	  	  	  	  	$0c
+wai 	$cb
+
+
+
+
+
+4. Direttive per gli assemblatori
+
+Tabella 46. Direttive
+
+Direttiva 	                           Esempio 	              Descrizione
+* 	                     * = $ 1000 	                         Imposta la posizione della memoria su un dato valore.
+
+.allineare 	             .allinea $100 	                         Allinea la posizione della memoria con valore dato.Ex. '.allinea$100' nella posizione di memoria $1234
+                                                                 imposterà la posizione su $ 1300.
+
+.asserire 	            .assert "Test 1",2+2,4 	                 Afferma che due espressioni o blocchi di codice sono uguali.
+
+.asserterror 	        .asserterror"Test 2",List().get(27)      Asserisce che una determinata espressione o codeblock genera un errore.
+
+.break 	                .break 	                                 Mette un punto di interruzione sui byte generati successivi.
+
+.by 	                .by $01,$02 $03 	                     Un alias per ".byte".
+
+.byte 	                .byte $01,$02,$03 	                     Output byte.
+
+.const                  .const DELAY=7                  	     Definisce una costante.
+
+.cpu 	                .cpu_65c02 	                             Modifica le istruzioni impostate su una cpu diversa.
+
+.define 	            .define larghezza,altezza{...} 	         Esegue un blocco di direttive in 'functionmode' (più veloce) per definire i valori.
+
+.disk 	                .disk[..disk pararamters ..]{..filepa-  Crea un file immagine d64
+                        rameters ..} 	.
+
+.dw 	               .dw $12341234 	                        Un alias per ".dword".
+
+.dword 	               .dword $12341234 	                    Emette doppie parole (valori di 4 byte).
+
+.encoding 	           .encoding "screencode_upper" 	        Imposta la codifica dei caratteri.
+
+.enum 	               .enum {on,off} 	                        Definisce una serie di costanti.
+
+.error 	               .error "not good!" 	                    Crea un errore generato dall'utente.
+
+.errorif 	           .errorif x>10 "not good!" 	            Crea un errore generato dall'utente se la condizione viene valutata su true.
+
+.eval 	               .eval x=x+y/2 	                        Valuta un'espressione di script.
+
+.file 	               .file [nome="myfile.prg"  	            Crea un file prg o bin dai segmenti dati.
+                         segmenti="Codice, dati"]
+
+.filemodify 	       .filemodify Encrypt(33) 	                Modifica l'output del file di origine corrente con il modificatore specificato.
+
+.filenamespace 	       .filenamespace myspace 	                Crea uno spazio dei nomi per tutte le seguenti direttive nel file di origine corrente.
+
+.fill 	               .fill 10,i*2 	                        Riempie un numero di byte con il valore di una determinata espressione.
+
+.fillword 	           .fillword 10,i*$102                      Riempie un numero di parole con il valore di una determinata espressione.
+
+.for 	               .for (var i; i <10; i ++) {...} 	        Crea un ciclo for.
+
+.function 	           .function area(h,w) {..} 	            Definisce una funzione.
+
+.if 	               .if (x> 0) {...} 	                    Esegue il codice se la condizione specificata è vera.
+
+.import binary 	       .import binario "Music.bin" 	            Importa un file binario.
+
+.import c64 	       .import c64 "Music.c64"                  Importa un file c64. Come per ".import binary", ma ignora i due byte dell'indirizzo all'inizio del file.
+
+.import source         .import source "MyLib.asm" 	            Importa un altro file di origine. (deprecato, usa invece #import instead)
+
+.import text 	       .import text "scroll.txt" 	            Importa un file di testo.
+
+.importonce 	       .importonce 	                            Fai in modo che l'assemblatore salti il ​​file corrente se è già stato importato. (deprecato, usa invece
+                                                                #importonce instead)
+
+.label       	        .label color=$d020 	                    Assegna una determinata espressione a un'etichetta.
+
+.lohifill 	            .lohifill $100,i*40 	                Riempie due tabelle con i byte hi e lo dell'espressione data. L'indirizzo delle tabelle può essere
+                                                                letto collegando un'etichetta.
+
+.macro 	                .macro BasicUpstart () ...} 	        Definisce una macro.
+
+.memblock 	            .memblock "Nuovo blocco" 	            Definisce un nuovo blocco di memoria nella posizione di memoria corrente.
+
+.modify      	        .modify Encrypt (27){...}           	Modifica l'output di un blocco di codice utilizzando il modificatore specificato.
+
+.namespace 	            .namespace myspace{..} 	               Crea uno spazio dei nomi locale.
+
+.pc 	                .pc=$1000 	                            Come '* ='
+
+.plugin      	        .plugin "plugins.macros.MyMacro" 	    Indica all'assemblatore di cercare un plugin nel percorso del pacchetto java indicato.
+
+.print 	                .print "Ciao" 	                        Stampa un messaggio sulla console nell'ultimo passaggio.
+
+.printnow 	            .printnow "Ciao adesso" 	            Stampa immediatamente un messaggio sulla console.
+
+.pseudocommand 	        .pseudocommand mov src:tar{...} 	    Definisce uno pseudocomando.
+
+.pseudopc 	            .pseudopc $2000{...} 	                Imposta il contatore del programma su qualcos'altro rispetto alla posizione di memoria effettiva.
+
+.return 	            .return 27 	                            Utilizzato all'interno delle funzioni per restituire un valore.
+
+.segment 	            .segment Data "I miei dati" 	        Passa a un altro segmento.
+
+.segmentdef 	        .segmentdef Data [inizio = $ 1000] 	    Definisce un segmento.
+
+.segmentout 	        .segmentout [segmenti = "DRIVE_CODE"] 	Invia i byte di un segmento intermedio al blocco di memoria corrente.
+
+.struct 	            .struct Point {x,y} 	                Crea una struttura definita dall'utente.
+
+.te 	                .te "ciao" 	                            Un alias per ".text".
+
+.testo 	                .text "ciao" 	                        Scarica i byte di testo in memoria.
+
+.var 	                .var x=27 	                            Definisce una variabile.
+
+.while 	                .while (i<10) {...} 	                Crea un ciclo while.
+
+.wo 	                .wo $1000, $1012 	                    Un alias per ".word".
+
+.word	                .word $ 1000, $ 1012 	                Emette parole (valori di due byte),
+
+.zp 	                .zp {label: .byte 0 ...} 	            Contrassegna le etichette irrisolte come presenti nello zeropage.
+
+
+
+
+5. Tipi di valore
+
+Tabella 47. Tipi di valore
+
+Type                         Example                            Description
+65xxArgument                 ($10),y                           Un valore che definisce un argomento dato a un mnemnonic.
+
+BinaryFile                   LoadBinary("file.bin", "")        Un valore contenente dati byte.
+
+Boolean                      true                              true or false.
+
+Char                         'x'                               A character.
+
+Hashtable                    Hashtable()                       Un valore che rappresenta una tabella hash.
+
+List                         List()                            A list value.
+
+Matrix                       Matrix()                          Represents a 4x4 matrix.
+
+Null                         null                              A null value.
+
+Number                       27.4                              A floating point number.
+
+OutputFile                   createFile("breakpoints.txt")     An value representing an output file.
+
+Picture                      LoadPicture("blob.gif")           The contents of a loaded picture.
+
+SidFile                      LoadSid("music.sid")              The contents of a sid file.
+
+String                       "Hello"                           A string value.
+
+Struct                       MyStruct(1,2)                     Represents a user defined structure.
+
+Vector                       Vector(1,2,3)                     A 3d vector value.
+
